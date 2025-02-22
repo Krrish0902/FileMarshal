@@ -22,6 +22,11 @@
             </ul>
         </nav>
         <main class="file-view">
+            <div class="navigation-bar">
+                <button id="backBtn" disabled>←</button>
+                <button id="forwardBtn" disabled>→</button>
+                <span class="current-path"></span>
+            </div>
             <h1>All Files</h1>
             <div class="files"></div>
         </main>
@@ -38,6 +43,10 @@
                 driveElement.onclick = () => loadFiles(drive);
                 drivesList.appendChild(driveElement);
             });
+            
+            // Add navigation button event listeners
+            document.getElementById('backBtn').addEventListener('click', goBack);
+            document.getElementById('forwardBtn').addEventListener('click', goForward);
         });
     </script>
 </body>
