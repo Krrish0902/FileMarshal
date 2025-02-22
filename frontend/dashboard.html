@@ -21,11 +21,98 @@
             </ul>
         </nav>
         <main class="file-view">
+            <div class="navigation-bar">
+                <div class="nav-left">
+                    <button id="backBtn" disabled>←</button>
+                    <button id="forwardBtn" disabled>→</button>
+                    <span class="current-path"></span>
+                </div>
+                <div class="nav-right">
+                    <div class="sort-container">
+                        <button id="sortBtn">Sort By ▾</button>
+                        <div class="sort-dropdown">
+                            <div class="sort-option" data-sort="name">Name</div>
+                            <div class="sort-option" data-sort="size">Size</div>
+                            <div class="sort-option" data-sort="modified">Date Modified</div>
+                            <div class="sort-option" data-sort="type">Type</div>
+                        </div>
+                    </div>
+                    <div class="view-container">
+                        <button id="viewBtn">View ▾</button>
+                        <div class="view-dropdown">
+                            <div class="view-option" data-view="grid">Grid</div>
+                            <div class="view-option" data-view="list">List</div>
+                        </div>
+                    </div>
+                    <div class="search-container">
+                        <input type="text" id="searchInput" placeholder="Search files...">
+                        <button id="searchBtn">🔍</button>
+                    </div>
+                </div>
+            </div>
             <h1>All Files</h1>
             <div class="files">
                 <!-- Files dynamically displayed here -->
             </div>
         </main>
     </div>
+<<<<<<< HEAD
+=======
+    <script src="fileManager.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                // Load drives immediately
+                const drives = await loadDrives();
+                const drivesList = document.getElementById('drives-list');
+                
+                // Clear existing content
+                drivesList.innerHTML = '';
+                
+                // Add drives to sidebar
+                drives.forEach(drive => {
+                    const driveElement = document.createElement('div');
+                    driveElement.className = 'drive-item';
+                    driveElement.textContent = drive;
+                    driveElement.onclick = () => loadFiles(drive);
+                    drivesList.appendChild(driveElement);
+                });
+
+                // Load first drive's contents automatically
+                if (drives.length > 0) {
+                    loadFiles(drives[0]);
+                }
+                
+                // Add navigation button event listeners
+                document.getElementById('backBtn').addEventListener('click', goBack);
+                document.getElementById('forwardBtn').addEventListener('click', goForward);
+
+                // Add this to the DOMContentLoaded event listener in dashboard.html
+                document.querySelectorAll('.sidebar li').forEach(item => {
+                    item.addEventListener('click', () => {
+                        const category = item.dataset.type;
+                        const currentPath = document.querySelector('.current-path').textContent;
+                        
+                        // Clean the path if it contains results text
+                        const cleanPath = currentPath.includes(' in ') ? 
+                            currentPath.split(' in ').pop() : currentPath;
+                            
+                        if (cleanPath) {
+                            // Visual feedback for selected category
+                            document.querySelectorAll('.sidebar li').forEach(li => {
+                                li.classList.remove('active');
+                            });
+                            item.classList.add('active');
+                            
+                            loadFilesByCategory(category, cleanPath);
+                        }
+                    });
+                });
+            } catch (error) {
+                console.error('Failed to initialize dashboard:', error);
+            }
+        });
+    </script>
+>>>>>>> 2b1a1e24d89aab9ca319d4ab9ec7b150681fb9a9
 </body>
 </html>
