@@ -1,24 +1,22 @@
-const { app, BrowserWindow, ipcMain } = require("electron");
-const axios = require("axios");
+const { app, BrowserWindow } = require('electron');
+const path = require('path');
 
 let mainWindow;
 
-app.whenReady().then(() => {
+function createWindow() {
     mainWindow = new BrowserWindow({
-        width: 800,
-        height: 600,
+        width: 1200,
+        height: 800,
         webPreferences: {
-            nodeIntegration: true,
+            nodeIntegration: true
         }
     });
-    mainWindow.loadFile("index.html");
-});
 
-ipcMain.handle("get-status", async () => {
-    const response = await axios.get("http://127.0.0.1:8000/");
-    return response.data;
-});
+    mainWindow.loadFile(path.join(__dirname, 'index.html'));
+}
 
-app.on("window-all-closed", () => {
-    if (process.platform !== "darwin") app.quit();
+app.whenReady().then(createWindow);
+
+app.on('window-all-closed', () => {
+    if (process.platform !== 'darwin') app.quit();
 });

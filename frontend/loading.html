@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Loading...</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="loading-page">
+    <div class="loading-container">
+        <div class="icons">
+            <img src="https://raw.githubusercontent.com/iconic/open-iconic/master/svg/image.svg" class="file-icon">
+            <img src="https://raw.githubusercontent.com/iconic/open-iconic/master/svg/document.svg" class="file-icon">
+            <img src="https://raw.githubusercontent.com/iconic/open-iconic/master/svg/video.svg" class="file-icon">
+            <img src="https://raw.githubusercontent.com/iconic/open-iconic/master/svg/audio.svg" class="file-icon">
+        </div>
+        <div class="progress-bar">
+            <div id="progress"></div>
+        </div>
+        <p id="loading-text">Loading... 0%</p>
+    </div>
+
+    <script>
+        let progress = 0;
+        let loadingText = document.getElementById("loading-text");
+        let progressBar = document.getElementById("progress");
+
+        let interval = setInterval(() => {
+            progress += 10;  // Increased from 5 to 10
+            progressBar.style.width = progress + "%";
+            loadingText.innerText = `Loading... ${progress}%`;
+
+            if (progress >= 100) {
+                clearInterval(interval);
+                window.location.href = "dashboard.html";
+            }
+        }, 200);  // Reduced from 500ms to 200ms
+    </script>
+</body>
+</html>
