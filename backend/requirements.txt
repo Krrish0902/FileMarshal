@@ -1,14 +1,2 @@
-flask
-scikit-learn
-nltk
-spacy
-opencv-python
-watchdog
-python-magic
-numpy 
-pandas
-pillow
-pytest
-python-dotenv
-flask-cors
-black
+flask==3.0.2
+flask-cors==4.0.0
