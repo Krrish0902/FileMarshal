@@ -23,9 +23,17 @@
         </nav>
         <main class="file-view">
             <div class="navigation-bar">
-                <button id="backBtn" disabled>←</button>
-                <button id="forwardBtn" disabled>→</button>
-                <span class="current-path"></span>
+                <div class="nav-left">
+                    <button id="backBtn" disabled>←</button>
+                    <button id="forwardBtn" disabled>→</button>
+                    <span class="current-path"></span>
+                </div>
+                <div class="nav-right">
+                    <div class="search-container">
+                        <input type="text" id="searchInput" placeholder="Search files...">
+                        <button id="searchBtn">🔍</button>
+                    </div>
+                </div>
             </div>
             <h1>All Files</h1>
             <div class="files"></div>
