@@ -106,12 +106,12 @@ html, body {
     padding: 12px 25px;
     font-size: 18px;
     font-weight: 500;
-    color: white;
+    color: white; /* Set initial text color to white */
     background: #000000;
     border: none;
     border-radius: 5px;
     cursor: pointer;
-    transition: background 0.3s ease, transform 0.2s ease;
+    transition: all 0.3s ease; /* Update transition to include all properties */
     opacity: 0;
     transform: translateY(20px);
     animation: slideUp 1s ease forwards;
@@ -137,9 +137,10 @@ html, body {
     }
 }
 
-/* Modify the hover effect to work with animation */
+/* Modify the hover effect to change text color */
 #getStarted:hover {
-    background: #860d0d;
+    background: #ffffff;
+    color: #000000; /* Change text color to black on hover */
     transform: scale(1.05) translateY(0);
 }
 
@@ -275,6 +276,7 @@ html, body {
     transform: translateX(3px);
 }
 
+/* Update file item styles */
 .file-item {
     background: #1a1a1a;
     padding: 15px;
@@ -284,6 +286,7 @@ html, body {
     transition: all 0.2s;
     border: 1px solid #2d2d2d;
     position: relative;
+    user-select: none;
 }
 
 .file-item:hover {
@@ -303,6 +306,15 @@ html, body {
     background: #242424;
     border-color: #404040;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.file-item.selected::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(44, 82, 130, 0.1);
+    border-radius: 8px;
+    pointer-events: none;
 }
 
 .file-icon {
@@ -341,11 +353,53 @@ html, body {
 .navigation-bar {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    padding: 15px 20px;
+    padding: 8px 15px;
     background: #1a1a1a;
     border-bottom: 1px solid #333;
-    margin-bottom: 20px;
+    gap: 20px;
+}
+
+.nav-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.controls-group {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-left: auto;
+}
+
+#selectAllBtn {
+    padding: 8px 12px;
+    background: #2d2d2d;
+    border: 1px solid #404040;
+    color: #e0e0e0;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+#selectAllBtn:hover {
+    background: #363636;
+}
+
+#selectAllBtn.active {
+    background: #2c5282;
+    border-color: #2b6cb0;
+}
+
+.current-path {
+    padding: 0 10px;
+    color: #888;
+    font-size: 13px;
+    font-family: monospace;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 500px;
 }
 
 .nav-left {
@@ -584,6 +638,14 @@ html, body {
     height: 18px;
     cursor: pointer;
     z-index: 1;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.selection-mode .file-checkbox,
+.file-item:hover .file-checkbox,
+.file-item.selected .file-checkbox {
+    opacity: 1;
 }
 
 .selection-controls {
@@ -593,6 +655,8 @@ html, body {
     display: flex;
     align-items: center;
     gap: 15px;
+    justify-content: space-between;
+    padding: 10px 20px;
 }
 
 .selection-controls span {
@@ -614,6 +678,12 @@ html, body {
 .selection-controls button:hover {
     background: #363636;
     border-color: #505050;
+}
+
+.selection-controls .selection-actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
 }
 
 #organizeBtn {
@@ -638,4 +708,21 @@ html, body {
 @keyframes fadeOut {
     0%, 80% { opacity: 1; }
     100% { opacity: 0; }
+}
+
+.select-all-checkbox {
+    margin-right: 10px;
+    cursor: pointer;
+}
+
+/* Update selection controls styles */
+.selection-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.selection-count {
+    color: #e0e0e0;
+    font-size: 13px;
 }
