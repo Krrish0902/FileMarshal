@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI File Organizer</title>
+</head>
+<body>
+    <h1>AI File Organizer</h1>
+    <button id="check-status">Check Backend Status</button>
+    <p id="status"></p>
+
+    <script>
+        const { ipcRenderer } = require("electron");
+
+        document.getElementById("check-status").addEventListener("click", async () => {
+            const response = await ipcRenderer.invoke("get-status");
+            document.getElementById("status").innerText = response.message;
+        });
+    </script>
+</body>
+</html>
