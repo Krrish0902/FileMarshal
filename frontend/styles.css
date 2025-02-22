@@ -169,9 +169,10 @@ html, body {
     animation: spin 2s linear infinite;
 }
 
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+/* Update the loading page icon style to be more specific */
+.loading-container .file-icon {
+    width: 40px;
+    animation: spin 2s linear infinite;
 }
 
 .progress-bar {
@@ -196,89 +197,124 @@ html, body {
 
 .sidebar {
     width: 250px;
-    background: #1e1e1e;
+    background: #1a1a1a;
     padding: 20px;
-    color: white;
+    color: #e0e0e0;
+    border-right: 1px solid #333;
 }
 
 .sidebar h2 {
     font-size: 20px;
-    margin-bottom: 20px;
+    margin-bottom: 25px;
+    color: #fff;
+    font-weight: 500;
 }
 
 .sidebar ul {
     list-style: none;
+    margin-top: 20px;
 }
 
 .sidebar li {
-    padding: 10px;
+    padding: 12px 15px;
     cursor: pointer;
-    transition: background 0.2s;
+    transition: all 0.2s;
+    border-radius: 6px;
+    margin-bottom: 4px;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
 }
 
 .sidebar li:hover {
-    background: #333;
+    background: #2d2d2d;
 }
 
 /* File View */
 .file-view {
     flex: 1;
-    padding: 20px;
-    color: white;
+    padding: 0;
+    color: #e0e0e0;
+    background: #121212;
 }
 
 .files {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
     gap: 15px;
+    padding: 20px;
 }
 
 .drive-item {
-    padding: 10px;
+    padding: 12px 15px;
     cursor: pointer;
-    transition: background 0.2s;
-    margin-bottom: 10px;
-    background: #333;
-    border-radius: 5px;
+    transition: all 0.2s;
+    margin-bottom: 8px;
+    background: #2d2d2d;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+}
+
+.drive-item::before {
+    content: "💾";
+    font-size: 16px;
 }
 
 .drive-item:hover {
-    background: #444;
+    background: #363636;
+    transform: translateX(3px);
 }
 
 .file-item {
-    background: #1e1e1e;
+    background: #1a1a1a;
     padding: 15px;
     border-radius: 8px;
     text-align: center;
     cursor: pointer;
-    transition: transform 0.2s;
+    transition: all 0.2s;
+    border: 1px solid #2d2d2d;
 }
 
 .file-item:hover {
     transform: translateY(-2px);
-    background: #2a2a2a;
+    background: #242424;
+    border-color: #404040;
 }
 
 .file-icon {
-    font-size: 24px;
-    margin-bottom: 8px;
+    font-size: 32px;
+    margin-bottom: 10px;
+    opacity: 0.9;
+}
+
+/* Update the dashboard file icon style */
+.file-item .file-icon {
+    font-size: 32px;
+    margin-bottom: 10px;
+    opacity: 0.9;
+    animation: none; /* Explicitly remove any animation */
 }
 
 .file-name {
-    font-size: 14px;
+    font-size: 13px;
+    color: #e0e0e0;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    padding: 0 5px;
 }
 
 /* Add these styles */
 .file-name .highlight {
-    background-color: #ffd700;
-    color: #000;
+    background-color: rgba(255, 215, 0, 0.3);
+    color: #fff;
     padding: 0 2px;
     border-radius: 2px;
-    font-weight: bold;
+    font-weight: 500;
 }
 
 /* Navigation Bar */
@@ -286,11 +322,10 @@ html, body {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 10px;
+    padding: 15px 20px;
+    background: #1a1a1a;
+    border-bottom: 1px solid #333;
     margin-bottom: 20px;
-    padding: 10px;
-    background: #1e1e1e;
-    border-radius: 5px;
 }
 
 .nav-left {
@@ -309,25 +344,25 @@ html, body {
     align-items: center;
     gap: 5px;
     position: relative;
-    min-width: 250px;
+    min-width: 300px;
 }
 
 #searchInput {
-    padding: 8px 12px;
-    padding-right: 40px;
+    padding: 10px 40px 10px 15px;
     font-size: 14px;
-    background: #333;
-    border: 1px solid #444;
-    border-radius: 4px;
-    color: white;
+    background: #2d2d2d;
+    border: 1px solid #404040;
+    border-radius: 6px;
+    color: #e0e0e0;
     width: 100%;
     transition: all 0.2s;
 }
 
 #searchInput:focus {
     outline: none;
-    border-color: #555;
-    background: #3a3a3a;
+    border-color: #505050;
+    background: #333;
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.1);
     width: 300px;
 }
 
@@ -341,12 +376,14 @@ html, body {
     cursor: pointer;
     transition: background 0.2s;
     position: absolute;
-    right: 5px;
+    right: 10px;
     top: 50%;
     transform: translateY(-50%);
     padding: 5px;
     background: none;
     border: none;
+    color: #888;
+    cursor: pointer;
 }
 
 #searchBtn:hover {
@@ -354,18 +391,19 @@ html, body {
 }
 
 .navigation-bar button {
-    padding: 8px 15px;
-    font-size: 16px;
-    background: #333;
-    color: white;
-    border: none;
+    padding: 8px 12px;
+    font-size: 14px;
+    background: #2d2d2d;
+    color: #e0e0e0;
+    border: 1px solid #404040;
     border-radius: 4px;
     cursor: pointer;
-    transition: background 0.2s;
+    transition: all 0.2s;
 }
 
 .navigation-bar button:hover:not(:disabled) {
-    background: #444;
+    background: #363636;
+    border-color: #505050;
 }
 
 .navigation-bar button:disabled {
@@ -374,9 +412,10 @@ html, body {
 }
 
 .current-path {
-    margin-left: 10px;
+    margin-left: 15px;
     color: #888;
-    font-size: 14px;
+    font-size: 13px;
+    font-family: monospace;
 }
 
 .no-results {
@@ -384,8 +423,15 @@ html, body {
     text-align: center;
     padding: 40px;
     color: #888;
-    font-size: 16px;
-    background: #1e1e1e;
+    font-size: 14px;
+    background: #1a1a1a;
     border-radius: 8px;
-    margin: 20px 0;
+    border: 1px solid #2d2d2d;
+    margin: 20px;
+}
+
+/* Keep the spin animation only for loading page */
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
 }
