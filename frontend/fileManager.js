@@ -13,33 +13,79 @@ let selectAllState = false;
 
 async function loadDrives() {
     try {
+        console.log('Fetching drives...'); // Debug log
         const response = await fetch('http://localhost:5000/api/drives');
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
         const drives = await response.json();
+        console.log('Received drives:', drives); // Debug log
+        
+        if (!Array.isArray(drives)) {
+            throw new Error('Invalid drive data received');
+        }
+        
+        // If no drives found, default to C: drive
+        if (drives.length === 0) {
+            console.log('No drives found, defaulting to C:'); // Debug log
+            return ['C:'];
+        }
+        
         return drives;
     } catch (error) {
         console.error('Error loading drives:', error);
-        return [];
+        // Default to C: drive on error
+        return ['C:'];
     }
 }
 
+// Update the loadFiles function
 async function loadFiles(path, addToHistory = true) {
     try {
-        const encodedPath = encodeURIComponent(path);
-        const response = await fetch(`http://localhost:5000/api/files/${encodedPath}`);
-        const files = await response.json();
+        console.log(`Loading files from: ${path}`); // Debug log
         
+        // Handle Windows drive paths
+        const encodedPath = encodeURIComponent(path.replace(':', '|'));
+        const response = await fetch(`http://localhost:5000/api/files/${encodedPath}`);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        if (data.error) {
+            throw new Error(data.error);
+        }
+        
+        // Update history only if successful
         if (addToHistory) {
             currentIndex++;
             navigationHistory = navigationHistory.slice(0, currentIndex);
             navigationHistory.push(path);
-            updateNavigationButtons();
         }
         
-        displayFiles(files);
-        document.querySelector('.current-path').textContent = path;
+        // Update UI elements safely
+        displayFiles(data);
+        
+        const pathElement = document.querySelector('.current-path');
+        if (pathElement) {
+            pathElement.textContent = path;
+        }
+        
+        const titleElement = document.querySelector('h1');
+        if (titleElement) {
+            titleElement.textContent = `${path} (${data.length} items)`;
+        }
+        
+        // Update navigation buttons after successful load
+        updateNavigationButtons();
+        
     } catch (error) {
         console.error('Error loading files:', error);
-        displayError(`Failed to load files from ${path}`);
+        displayError(`Failed to load files from ${path}: ${error.message}`);
     }
 }
 
@@ -124,13 +170,18 @@ async function searchFiles(query, path) {
     }
 }
 
+// Update error display function
 function displayError(message) {
     const filesContainer = document.querySelector('.files');
-    filesContainer.innerHTML = `
-        <div class="no-results">
-            <p style="color: #ff6b6b;">${message}</p>
-        </div>
-    `;
+    if (filesContainer) {
+        filesContainer.innerHTML = `
+            <div class="no-results">
+                <p style="color: #ff6b6b;">${message}</p>
+            </div>
+        `;
+    } else {
+        console.error('Files container not found:', message);
+    }
 }
 
 function goBack() {
@@ -564,6 +615,50 @@ function handleSearch(event) {
         searchFiles(query, searchInput.dataset.originalPath || currentPath);
     }, SEARCH_DELAY);
 }
+
+// Update initialization in dashboard.html
+document.addEventListener('DOMContentLoaded', async () => {
+    try {
+        console.log('Initializing dashboard...'); // Debug log
+        
+        // Load drives
+        const drives = await loadDrives();
+        console.log('Available drives:', drives); // Debug log
+        
+        if (!drives || drives.length === 0) {
+            throw new Error('No drives found');
+        }
+        
+        const drivesList = document.getElementById('drives-list');
+        if (!drivesList) {
+            throw new Error('Drives list element not found');
+        }
+        
+        drivesList.innerHTML = '';
+        
+        // Add drives to sidebar
+        drives.forEach(drive => {
+            const driveElement = document.createElement('div');
+            driveElement.className = 'drive-item';
+            driveElement.textContent = drive;
+            driveElement.addEventListener('click', () => {
+                console.log(`Clicking drive: ${drive}`); // Debug log
+                loadFiles(drive);
+            });
+            drivesList.appendChild(driveElement);
+        });
+
+        // Load first drive's contents
+        if (drives.length > 0) {
+            console.log(`Loading initial drive: ${drives[0]}`); // Debug log
+            await loadFiles(drives[0]);
+        }
+        
+    } catch (error) {
+        console.error('Dashboard initialization error:', error);
+        displayError(`Failed to initialize: ${error.message}`);
+    }
+});
 
 // Remove all previous event listeners and add new ones
 document.addEventListener('DOMContentLoaded', () => {

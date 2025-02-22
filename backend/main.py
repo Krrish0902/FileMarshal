@@ -9,6 +9,7 @@ import time
 from file_classifier import FileClassifier
 import mimetypes
 import subprocess
+from ctypes import windll
 
 app = Flask(__name__)
 CORS(app)
@@ -21,49 +22,131 @@ file_classifier = FileClassifier()
 
 def get_system_drives():
     if platform.system() == "Windows":
-        from ctypes import windll
-        drives = []
-        bitmask = windll.kernel32.GetLogicalDrives()
-        for letter in string.ascii_uppercase:
-            if bitmask & 1:
-                drives.append(f"{letter}:")
-            bitmask >>= 1
-        return drives
-    return ["/"]  # For Unix-based systems
+        try:
+            drives = []
+            bitmask = windll.kernel32.GetLogicalDrives()
+            for letter in string.ascii_uppercase:
+                if bitmask & 1:
+                    drive = f"{letter}:"
+                    try:
+                        # Check if drive is ready and accessible
+                        if os.path.exists(drive + "\\"):
+                            drives.append(drive)
+                    except Exception as e:
+                        print(f"Error checking drive {drive}: {e}")
+                bitmask >>= 1
+            print(f"Found drives: {drives}")  # Debug log
+            if not drives:
+                # Fallback to default system drive
+                system_drive = os.getenv('SystemDrive', 'C:')
+                if os.path.exists(system_drive):
+                    drives.append(system_drive)
+            return drives
+        except Exception as e:
+            print(f"Error getting drives: {e}")
+            return ["C:"]  # Fallback to C: drive
+    else:
+        return ["/"]  # For Unix-like systems
 
 def scan_directory(path):
     try:
         items = []
-        for entry in os.scandir(path):
-            # Skip hidden files and directories
-            if entry.name.startswith('.'):
-                continue
+        # Handle root directory for Windows drives
+        if path.endswith(':'):
+            path = path + '\\'
+            
+        with os.scandir(path) as entries:
+            for entry in entries:
+                # Skip hidden files and directories
+                if entry.name.startswith('.'):
+                    continue
+                    
+                try:
+                    stats = entry.stat()
+                    item = {
+                        "name": entry.name,
+                        "path": entry.path,
+                        "type": "directory" if entry.is_dir() else "file",
+                        "size": stats.st_size if entry.is_file() else 0,
+                        "modified": stats.st_mtime
+                    }
+                    items.append(item)
+                except (PermissionError, OSError) as e:
+                    print(f"Error accessing {entry.path}: {e}")
+                    continue
                 
-            try:
-                item = {
-                    "name": entry.name,
-                    "path": entry.path,
-                    "type": "directory" if entry.is_dir() else "file",
-                    "size": os.path.getsize(entry.path) if entry.is_file() else 0,
-                    "modified": os.path.getmtime(entry.path)
-                }
-                items.append(item)
-            except (PermissionError, OSError):
-                continue
-                
-        # Sort items: directories first, then files
+        # Sort items: directories first, then files alphabetically
         return sorted(items, 
                      key=lambda x: (x['type'] != 'directory', x['name'].lower()))
     except Exception as e:
+        print(f"Error scanning directory {path}: {e}")
         return {"error": str(e)}
 
 @app.route('/api/drives')
 def get_drives():
-    return jsonify(get_system_drives())
+    try:
+        drives = get_system_drives()
+        print(f"Found drives: {drives}")  # Debug log
+        return jsonify(drives)
+    except Exception as e:
+        print(f"Error getting drives: {e}")
+        return jsonify({"error": str(e)})
 
 @app.route('/api/files/<path:directory>')
 def get_files(directory):
-    return jsonify(scan_directory(directory))
+    try:
+        # Handle Windows drive paths
+        if platform.system() == "Windows":
+            # First, decode any URL-encoded characters
+            directory = directory.replace('%7C', '|')  # Handle encoded pipe
+            directory = directory.replace('|', ':')
+            
+            # Clean up the path
+            directory = os.path.normpath(directory)
+            
+            # Add backslash for root directory
+            if directory.endswith(':'):
+                directory += '\\'
+        
+        print(f"Scanning directory: {directory}")  # Debug log
+        
+        # Validate path exists
+        if not os.path.exists(directory):
+            return jsonify({"error": f"Path does not exist: {directory}"})
+            
+        items = []
+        try:
+            with os.scandir(directory) as entries:
+                for entry in entries:
+                    try:
+                        # Skip hidden files and directories
+                        if entry.name.startswith('.'):
+                            continue
+                            
+                        stats = entry.stat()
+                        item = {
+                            "name": entry.name,
+                            "path": entry.path.replace('\\', '/'),  # Normalize path for frontend
+                            "type": "directory" if entry.is_dir() else "file",
+                            "size": stats.st_size if entry.is_file() else 0,
+                            "modified": stats.st_mtime
+                        }
+                        items.append(item)
+                    except (PermissionError, OSError) as e:
+                        print(f"Error accessing {entry.path}: {e}")
+                        continue
+                        
+            # Sort items: directories first, then files alphabetically
+            items.sort(key=lambda x: (x['type'] != 'directory', x['name'].lower()))
+            print(f"Found {len(items)} items in {directory}")  # Debug log
+            return jsonify(items)
+            
+        except PermissionError as e:
+            return jsonify({"error": f"Permission denied: {str(e)}"})
+            
+    except Exception as e:
+        print(f"Error scanning directory {directory}: {e}")  # Debug log
+        return jsonify({"error": str(e)})
 
 @app.route('/api/search')
 def search_files():
