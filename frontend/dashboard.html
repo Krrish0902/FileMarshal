@@ -83,6 +83,28 @@
                 // Add navigation button event listeners
                 document.getElementById('backBtn').addEventListener('click', goBack);
                 document.getElementById('forwardBtn').addEventListener('click', goForward);
+
+                // Add this to the DOMContentLoaded event listener in dashboard.html
+                document.querySelectorAll('.sidebar li').forEach(item => {
+                    item.addEventListener('click', () => {
+                        const category = item.dataset.type;
+                        const currentPath = document.querySelector('.current-path').textContent;
+                        
+                        // Clean the path if it contains results text
+                        const cleanPath = currentPath.includes(' in ') ? 
+                            currentPath.split(' in ').pop() : currentPath;
+                            
+                        if (cleanPath) {
+                            // Visual feedback for selected category
+                            document.querySelectorAll('.sidebar li').forEach(li => {
+                                li.classList.remove('active');
+                            });
+                            item.classList.add('active');
+                            
+                            loadFilesByCategory(category, cleanPath);
+                        }
+                    });
+                });
             } catch (error) {
                 console.error('Failed to initialize dashboard:', error);
             }

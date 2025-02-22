@@ -139,6 +139,8 @@ def get_files_by_category(category):
         if not path:
             return jsonify([])
 
+        print(f"Searching category '{category}' in '{path}'")  # Debug log
+
         results = []
         for root, dirs, files in os.walk(path):
             # Skip hidden directories
@@ -151,33 +153,89 @@ def get_files_by_category(category):
                 full_path = os.path.join(root, file)
                 try:
                     # Get file category
-                    file_category = file_classifier.classify_file(full_path)
+                    if category == 'all':
+                        file_category = 'all'
+                    else:
+                        file_category = file_classifier.classify_file(full_path)
+                    
+                    # Debug log
+                    print(f"File: {file}, Category: {file_category}")
                     
                     # Include file if it matches the category or if 'all' is selected
                     if category == 'all' or file_category == category:
+                        size = os.path.getsize(full_path) if os.path.isfile(full_path) else 0
                         results.append({
                             "name": file,
                             "path": full_path,
                             "type": "file",
                             "category": file_category,
-                            "size": os.path.getsize(full_path),
+                            "size": size,
                             "modified": os.path.getmtime(full_path)
                         })
                         
-                        # Limit results to prevent overwhelming
-                        if len(results) >= 1000:
-                            break
-                            
                 except (PermissionError, OSError) as e:
                     print(f"Error accessing {full_path}: {e}")
                     continue
 
-        # Sort results by name
-        results.sort(key=lambda x: x['name'].lower())
-        
+            # Limit results to prevent overwhelming
+            if len(results) >= 1000:
+                break
+
+        print(f"Found {len(results)} files in category {category}")  # Debug log
         return jsonify(results)
     except Exception as e:
-        print(f"Category error: {e}")
+        print(f"Category error: {e}")  # Debug log
+        return jsonify({"error": str(e)})
+
+@app.route('/api/organize', methods=['POST'])
+def organize_files():
+    try:
+        data = request.json
+        files = data.get('files', [])
+        
+        if not files:
+            return jsonify({"error": "No files selected"})
+        
+        organized = []
+        errors = []
+        
+        for file_path in files:
+            try:
+                if os.path.exists(file_path):
+                    # Get file category
+                    category = file_classifier.classify_file(file_path)
+                    
+                    # Create category directory in same location as file
+                    parent_dir = os.path.dirname(file_path)
+                    category_dir = os.path.join(parent_dir, category)
+                    
+                    # Create directory if it doesn't exist
+                    if not os.path.exists(category_dir):
+                        os.makedirs(category_dir)
+                    
+                    # Move file to category directory
+                    filename = os.path.basename(file_path)
+                    new_path = os.path.join(category_dir, filename)
+                    
+                    # Handle duplicate filenames
+                    counter = 1
+                    while os.path.exists(new_path):
+                        name, ext = os.path.splitext(filename)
+                        new_path = os.path.join(category_dir, f"{name}_{counter}{ext}")
+                        counter += 1
+                    
+                    os.rename(file_path, new_path)
+                    organized.append(file_path)
+            except Exception as e:
+                errors.append(f"Error organizing {file_path}: {str(e)}")
+        
+        return jsonify({
+            "organized": organized,
+            "errors": errors,
+            "message": f"Successfully organized {len(organized)} files"
+        })
+        
+    except Exception as e:
         return jsonify({"error": str(e)})
 
 def highlight_text(text, query):

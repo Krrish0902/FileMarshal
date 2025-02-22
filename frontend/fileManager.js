@@ -5,6 +5,7 @@ const SEARCH_DELAY = 300;
 let lastSearchQuery = '';
 let currentSort = { field: 'name', direction: 'asc' };
 let currentView = 'grid';
+let selectedFiles = new Set();
 
 async function loadDrives() {
     try {
@@ -38,23 +39,41 @@ async function loadFiles(path, addToHistory = true) {
     }
 }
 
-// Add this new function
 async function loadFilesByCategory(category, path) {
     try {
+        // Clean the path if it contains results text
+        if (path.includes('Found') || path.includes('No results')) {
+            path = path.split(' in ').pop();
+        }
+
+        console.log(`Loading category: ${category} from path: ${path}`); // Debug log
+        
         const encodedPath = encodeURIComponent(path);
         const response = await fetch(`http://localhost:5000/api/files/category/${category}?path=${encodedPath}`);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
         const files = await response.json();
         
         if (files.error) {
             throw new Error(files.error);
         }
         
+        console.log(`Found ${files.length} files in category ${category}`); // Debug log
+        
         displayFiles(files);
+        
+        // Update header and path
         document.querySelector('h1').textContent = 
-            category.charAt(0).toUpperCase() + category.slice(1);
+            `${category.charAt(0).toUpperCase() + category.slice(1)} (${files.length} items)`;
+        document.querySelector('.current-path').textContent = 
+            `Showing ${category} in ${path}`;
+            
     } catch (error) {
         console.error('Error loading files by category:', error);
-        displayError(`Failed to load ${category} files`);
+        displayError(`Failed to load ${category} files: ${error.message}`);
     }
 }
 
@@ -167,12 +186,31 @@ function displayFiles(files) {
         return;
     }
 
-    // Sort files before display
     const sortedFiles = sortFiles(files, currentSort.field, currentSort.direction);
 
     sortedFiles.forEach(file => {
         const fileElement = document.createElement('div');
         fileElement.className = 'file-item';
+        if (selectedFiles.has(file.path)) {
+            fileElement.classList.add('selected');
+        }
+        
+        // Add checkbox for selection
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.className = 'file-checkbox';
+        checkbox.checked = selectedFiles.has(file.path);
+        checkbox.addEventListener('change', (e) => {
+            e.stopPropagation();
+            if (e.target.checked) {
+                selectedFiles.add(file.path);
+                fileElement.classList.add('selected');
+            } else {
+                selectedFiles.delete(file.path);
+                fileElement.classList.remove('selected');
+            }
+            updateSelectionControls();
+        });
         
         const iconElement = document.createElement('div');
         iconElement.className = 'file-icon';
@@ -220,8 +258,13 @@ function displayFiles(files) {
             showContextMenu(e, file);
         });
 
+        // Add checkbox as first child
+        fileElement.insertBefore(checkbox, fileElement.firstChild);
+        
         filesContainer.appendChild(fileElement);
     });
+    
+    updateSelectionControls();
 }
 
 function formatSize(bytes) {
@@ -377,3 +420,83 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 });
+
+function updateSelectionControls() {
+    const selectionCount = selectedFiles.size;
+    const selectionControls = document.querySelector('.selection-controls');
+    
+    if (selectionCount > 0) {
+        if (!selectionControls) {
+            const controls = document.createElement('div');
+            controls.className = 'selection-controls';
+            controls.innerHTML = `
+                <span>${selectionCount} item(s) selected</span>
+                <button id="organizeBtn">Organize Selected Files</button>
+                <button id="clearSelectionBtn">Clear Selection</button>
+            `;
+            document.querySelector('.file-view').insertBefore(
+                controls, 
+                document.querySelector('.files')
+            );
+            
+            // Add event listeners
+            document.getElementById('organizeBtn').addEventListener('click', organizeSelectedFiles);
+            document.getElementById('clearSelectionBtn').addEventListener('click', clearSelection);
+        } else {
+            selectionControls.querySelector('span').textContent = `${selectionCount} item(s) selected`;
+        }
+    } else if (selectionControls) {
+        selectionControls.remove();
+    }
+}
+
+function clearSelection() {
+    selectedFiles.clear();
+    document.querySelectorAll('.file-item').forEach(item => {
+        item.classList.remove('selected');
+        item.querySelector('.file-checkbox').checked = false;
+    });
+    updateSelectionControls();
+}
+
+async function organizeSelectedFiles() {
+    try {
+        const response = await fetch('http://localhost:5000/api/organize', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                files: Array.from(selectedFiles)
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.error) {
+            throw new Error(result.error);
+        }
+        
+        // Refresh current view
+        const currentPath = document.querySelector('.current-path').textContent;
+        loadFiles(currentPath);
+        clearSelection();
+        
+        // Show success message
+        displaySuccess(`Successfully organized ${selectedFiles.size} files`);
+    } catch (error) {
+        console.error('Error organizing files:', error);
+        displayError(`Failed to organize files: ${error.message}`);
+    }
+}
+
+function displaySuccess(message) {
+    const successElement = document.createElement('div');
+    successElement.className = 'success-message';
+    successElement.textContent = message;
+    document.querySelector('.file-view').insertBefore(
+        successElement,
+        document.querySelector('.files')
+    );
+    setTimeout(() => successElement.remove(), 3000);
+}
