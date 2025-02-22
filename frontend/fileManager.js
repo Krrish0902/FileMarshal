@@ -320,9 +320,6 @@ function displayFiles(files) {
 
         if (file.type === 'directory') {
             fileElement.addEventListener('click', () => loadFiles(file.path));
-        } else {
-            // Add click handler for files
-            fileElement.addEventListener('click', () => openFile(file));
         }
 
         // Add context menu
@@ -337,180 +334,7 @@ function displayFiles(files) {
         filesContainer.appendChild(fileElement);
     });
     
-    selectAllState = false;
-    document.getElementById('selectAllBtn').textContent = '☐';
-    document.getElementById('selectAllBtn').classList.remove('active');
-    
-    updateSelectionCount();
-}
-
-function handleFileSelection(file, ctrlKey, shiftKey) {
-    if (!isSelectionMode) {
-        isSelectionMode = true;
-        document.querySelector('.files').classList.add('selection-mode');
-    }
-
-    if (shiftKey && lastSelectedFile) {
-        // Handle range selection
-        const files = Array.from(document.querySelectorAll('.file-item'));
-        const startIndex = files.findIndex(el => el.dataset.path === lastSelectedFile);
-        const endIndex = files.findIndex(el => el.dataset.path === file.path);
-        const [min, max] = [Math.min(startIndex, endIndex), Math.max(startIndex, endIndex)];
-        
-        files.slice(min, max + 1).forEach(fileEl => {
-            const filePath = fileEl.dataset.path;
-            selectedFiles.add(filePath);
-            fileEl.classList.add('selected');
-            fileEl.querySelector('.file-checkbox').checked = true;
-        });
-    } else if (ctrlKey) {
-        // Toggle single selection
-        if (selectedFiles.has(file.path)) {
-            selectedFiles.delete(file.path);
-        } else {
-            selectedFiles.add(file.path);
-        }
-    } else {
-        // Clear previous selection and select single file
-        selectedFiles.clear();
-        document.querySelectorAll('.file-item').forEach(item => {
-            item.classList.remove('selected');
-            item.querySelector('.file-checkbox').checked = false;
-        });
-        selectedFiles.add(file.path);
-    }
-
-    lastSelectedFile = file.path;
     updateSelectionControls();
-}
-
-function updateSelectionControls() {
-    const selectionCount = selectedFiles.size;
-    let selectionControls = document.querySelector('.selection-controls');
-    
-    if (selectionCount > 0 || isSelectionMode) {
-        if (!selectionControls) {
-            const controls = document.createElement('div');
-            controls.className = 'selection-controls';
-            controls.innerHTML = `
-                <div class="selection-info">
-                    <input type="checkbox" class="select-all-checkbox" title="Select All">
-                    <span>${selectionCount} item(s) selected</span>
-                </div>
-                <div class="selection-actions">
-                    <button id="organizeBtn">Organize Selected Files</button>
-                    <button id="clearSelectionBtn">Clear Selection</button>
-                </div>
-            `;
-            document.querySelector('.file-view').insertBefore(
-                controls, 
-                document.querySelector('.files')
-            );
-            
-            // Add event listeners
-            const selectAllCheckbox = controls.querySelector('.select-all-checkbox');
-            selectAllCheckbox.addEventListener('change', handleSelectAll);
-            document.getElementById('organizeBtn').addEventListener('click', organizeSelectedFiles);
-            document.getElementById('clearSelectionBtn').addEventListener('click', exitSelectionMode);
-        } else {
-            selectionControls.querySelector('span').textContent = `${selectionCount} item(s) selected`;
-            selectionControls.querySelector('.select-all-checkbox').checked = 
-                selectionCount === document.querySelectorAll('.file-item').length;
-        }
-    } else if (selectionControls) {
-        selectionControls.remove();
-    }
-}
-
-function handleSelectAll() {
-    selectAllState = !selectAllState;
-    const selectAllBtn = document.getElementById('selectAllBtn');
-    selectAllBtn.textContent = selectAllState ? '☑' : '☐';
-    selectAllBtn.classList.toggle('active', selectAllState);
-
-    const fileItems = document.querySelectorAll('.file-item');
-    fileItems.forEach(item => {
-        const filePath = item.querySelector('.file-name').dataset.path;
-        if (selectAllState) {
-            selectedFiles.add(filePath);
-            item.classList.add('selected');
-        } else {
-            selectedFiles.delete(filePath);
-            item.classList.remove('selected');
-        }
-    });
-
-    updateSelectionCount();
-}
-
-function updateSelectionCount() {
-    const count = selectedFiles.size;
-    const totalFiles = document.querySelectorAll('.file-item').length;
-    
-    let selectionControls = document.querySelector('.selection-controls');
-    if (count > 0) {
-        if (!selectionControls) {
-            selectionControls = document.createElement('div');
-            selectionControls.className = 'selection-controls';
-            selectionControls.innerHTML = `
-                <div class="selection-info">
-                    <span class="selection-count">${count} of ${totalFiles} selected</span>
-                </div>
-                <div class="selection-actions">
-                    <button id="organizeBtn">Organize Selected Files</button>
-                    <button id="clearSelectionBtn">Clear Selection</button>
-                </div>
-            `;
-            document.querySelector('.file-view').insertBefore(
-                selectionControls,
-                document.querySelector('.files')
-            );
-
-            document.getElementById('organizeBtn').addEventListener('click', organizeSelectedFiles);
-            document.getElementById('clearSelectionBtn').addEventListener('click', exitSelectionMode);
-        } else {
-            selectionControls.querySelector('.selection-count').textContent = 
-                `${count} of ${totalFiles} selected`;
-        }
-    } else if (selectionControls) {
-        selectionControls.remove();
-        selectAllState = false;
-        document.getElementById('selectAllBtn').textContent = '☐';
-        document.getElementById('selectAllBtn').classList.remove('active');
-    }
-}
-
-function exitSelectionMode() {
-    isSelectionMode = false;
-    selectedFiles.clear();
-    document.querySelector('.files').classList.remove('selection-mode');
-    document.querySelectorAll('.file-item').forEach(item => {
-        item.classList.remove('selected');
-        item.querySelector('.file-checkbox').checked = false;
-    });
-    updateSelectionControls();
-}
-
-async function openFile(file) {
-    try {
-        const response = await fetch('http://localhost:5000/api/open', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                path: file.path
-            })
-        });
-        
-        const result = await response.json();
-        if (result.error) {
-            throw new Error(result.error);
-        }
-    } catch (error) {
-        console.error('Error opening file:', error);
-        displayError(`Failed to open file: ${error.message}`);
-    }
 }
 
 function formatSize(bytes) {
@@ -529,62 +353,22 @@ function showContextMenu(event, file) {
     const contextMenu = document.createElement('div');
     contextMenu.className = 'context-menu';
     contextMenu.innerHTML = `
-        <div class="context-menu-item" data-action="open">
-            <span>🔍</span> Open
-        </div>
-        <div class="context-menu-item" data-action="select">
-            <span>☑️</span> Select
-        </div>
-        <div class="context-menu-separator"></div>
-        <div class="context-menu-item" data-action="copy">
-            <span>📋</span> Copy
-        </div>
-        <div class="context-menu-item" data-action="cut">
-            <span>✂️</span> Cut
-        </div>
-        <div class="context-menu-item" data-action="delete">
-            <span>🗑️</span> Delete
-        </div>
-        <div class="context-menu-item" data-action="rename">
-            <span>✏️</span> Rename
-        </div>
-        <div class="context-menu-separator"></div>
-        <div class="context-menu-item" data-action="properties">
-            <span>ℹ️</span> Properties
-        </div>
+        <div class="context-menu-item">Open</div>
+        <div class="context-menu-item">Copy</div>
+        <div class="context-menu-item">Cut</div>
+        <div class="context-menu-item">Delete</div>
+        <div class="context-menu-item">Rename</div>
+        <div class="context-menu-item">Properties</div>
     `;
 
     contextMenu.style.left = `${event.pageX}px`;
     contextMenu.style.top = `${event.pageY}px`;
     document.body.appendChild(contextMenu);
 
-    // Add click handlers for menu items
-    contextMenu.querySelectorAll('.context-menu-item').forEach(item => {
-        item.addEventListener('click', () => {
-            const action = item.dataset.action;
-            switch(action) {
-                case 'select':
-                    handleFileSelection(file, false, false);
-                    break;
-                case 'open':
-                    if (file.type === 'directory') {
-                        loadFiles(file.path);
-                    } else {
-                        openFile(file);
-                    }
-                    break;
-                // Other actions can be added here
-            }
-            contextMenu.remove();
-        });
-    });
-
     // Close menu on click outside
-    document.addEventListener('click', function closeMenu(e) {
-        if (!contextMenu.contains(e.target)) {
-            contextMenu.remove();
-            document.removeEventListener('click', closeMenu);
-        }
+    document.addEventListener('click', function closeMenu() {
+        contextMenu.remove();
+        document.removeEventListener('click', closeMenu);
     });
 }
 
