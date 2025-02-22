@@ -38,6 +38,26 @@ async function loadFiles(path, addToHistory = true) {
     }
 }
 
+// Add this new function
+async function loadFilesByCategory(category, path) {
+    try {
+        const encodedPath = encodeURIComponent(path);
+        const response = await fetch(`http://localhost:5000/api/files/category/${category}?path=${encodedPath}`);
+        const files = await response.json();
+        
+        if (files.error) {
+            throw new Error(files.error);
+        }
+        
+        displayFiles(files);
+        document.querySelector('h1').textContent = 
+            category.charAt(0).toUpperCase() + category.slice(1);
+    } catch (error) {
+        console.error('Error loading files by category:', error);
+        displayError(`Failed to load ${category} files`);
+    }
+}
+
 async function searchFiles(query, path) {
     try {
         // Clean the path if it contains search results text
@@ -343,6 +363,17 @@ document.addEventListener('DOMContentLoaded', () => {
             currentView = this.dataset.view;
             const currentPath = document.querySelector('.current-path').textContent;
             loadFiles(currentPath);
+        });
+    });
+
+    // Add category click handlers
+    document.querySelectorAll('.sidebar li').forEach(item => {
+        item.addEventListener('click', () => {
+            const category = item.dataset.type;
+            const currentPath = document.querySelector('.current-path').textContent;
+            if (currentPath) {
+                loadFilesByCategory(category, currentPath);
+            }
         });
     });
 });

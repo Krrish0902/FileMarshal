@@ -6,12 +6,17 @@ import string
 import json
 from concurrent.futures import ThreadPoolExecutor
 import time
+from file_classifier import FileClassifier
+import mimetypes
 
 app = Flask(__name__)
 CORS(app)
 
 # Add global variable for file cache
 file_cache = {}
+
+# Initialize the classifier
+file_classifier = FileClassifier()
 
 def get_system_drives():
     if platform.system() == "Windows":
@@ -125,6 +130,54 @@ def initialize_app():
         drives = get_system_drives()
         return jsonify({"status": "success", "drives": drives})
     except Exception as e:
+        return jsonify({"error": str(e)})
+
+@app.route('/api/files/category/<category>')
+def get_files_by_category(category):
+    try:
+        path = request.args.get('path', '')
+        if not path:
+            return jsonify([])
+
+        results = []
+        for root, dirs, files in os.walk(path):
+            # Skip hidden directories
+            dirs[:] = [d for d in dirs if not d.startswith('.')]
+            
+            for file in files:
+                if file.startswith('.'):
+                    continue
+                    
+                full_path = os.path.join(root, file)
+                try:
+                    # Get file category
+                    file_category = file_classifier.classify_file(full_path)
+                    
+                    # Include file if it matches the category or if 'all' is selected
+                    if category == 'all' or file_category == category:
+                        results.append({
+                            "name": file,
+                            "path": full_path,
+                            "type": "file",
+                            "category": file_category,
+                            "size": os.path.getsize(full_path),
+                            "modified": os.path.getmtime(full_path)
+                        })
+                        
+                        # Limit results to prevent overwhelming
+                        if len(results) >= 1000:
+                            break
+                            
+                except (PermissionError, OSError) as e:
+                    print(f"Error accessing {full_path}: {e}")
+                    continue
+
+        # Sort results by name
+        results.sort(key=lambda x: x['name'].lower())
+        
+        return jsonify(results)
+    except Exception as e:
+        print(f"Category error: {e}")
         return jsonify({"error": str(e)})
 
 def highlight_text(text, query):
