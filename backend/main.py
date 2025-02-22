@@ -3,44 +3,33 @@ from flask_cors import CORS
 import os
 import platform
 import string
-import json
-import time
 import shutil
 from urllib.parse import unquote
-from concurrent.futures import ThreadPoolExecutor
 import mimetypes
 import hashlib
 from datetime import datetime
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
-from concurrent.futures import ThreadPoolExecutor
-import time
 from file_classifier import FileClassifier
-import mimetypes
 import subprocess
 
 app = Flask(__name__)
 CORS(app)
 
-# Global variables from both files
 previous_files = {}
 file_cache = {}
+file_classifier = FileClassifier()
 
 FILE_CATEGORIES = {
-    "text": {".txt", ".srt", ".md", ".json", ".xml" },
+    "text": {".txt", ".srt", ".md", ".json", ".xml"},  # Remove .pdf
+    "document": {".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx", ".tex", ".csv", ".tsv"},
     "image": {".jpg", ".jpeg", ".png", ".gif", ".bmp", ".tiff", ".svg", ".webp"},
     "audio": {".mp3", ".wav", ".aac", ".flac", ".ogg", ".m4a"},
     "video": {".mp4", ".avi", ".mkv", ".mov", ".wmv", ".flv", ".webm"},
     "compressed": {".zip", ".rar", ".tar", ".gz", ".7z"},
-    "document": {".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx", ".tex", ".csv", ".tsv" },
     "code": {".py", ".js", ".java", ".cpp", ".h", ".cs", ".php", ".rb", ".c", ".html", ".css", ".jsx", ".ts", ".tsx", ".go", ".swift", ".pl", ".sql", ".r", ".sh", ".bat", ".ps1", ".cmd", ".yaml", ".yml", ".ini", ".cfg", ".rst", ".ipynb", ".rmd", }
 }
 
-# Add global variable for file cache
-file_cache = {}
-
-# Initialize the classifier
-file_classifier = FileClassifier()
 
 def get_system_drives():
     if platform.system() == "Windows":
@@ -204,11 +193,13 @@ def scan_and_classify_file(file_path):
     except Exception as e:
         return {"error": str(e)}
 
+# Consolidate file tracking
 class FileHandler(FileSystemEventHandler):
     def __init__(self, watch_directory, organization_directory):
         self.watch_directory = watch_directory
         self.organization_directory = organization_directory
-        self.previous_files = {}
+        # Use global previous_files instead of local tracking
+        global previous_files
 
     def on_created(self, event):
         if not event.is_directory:
@@ -216,8 +207,8 @@ class FileHandler(FileSystemEventHandler):
 
     def process_file(self, file_path):
         try:
-            # Analyze and classify file
-            metadata = self.scan_and_classify_file(file_path)
+            # Use the global scan_and_classify_file function
+            metadata = scan_and_classify_file(file_path)
             category = metadata['classification']['category']
             
             # Create category directory if it doesn't exist
@@ -242,56 +233,9 @@ class FileHandler(FileSystemEventHandler):
         except Exception as e:
             print(f"Error processing {file_path}: {str(e)}")
 
-    def scan_and_classify_file(self, file_path):
-        """Enhanced scan and classify function"""
-        try:
-            # Basic file information
-            file_stat = os.stat(file_path)
-            file_name = os.path.basename(file_path)
-            file_extension = os.path.splitext(file_name)[1].lower()
-            
-            # Calculate file hash
-            md5_hash = hashlib.md5()
-            with open(file_path, "rb") as f:
-                for chunk in iter(lambda: f.read(4096), b""):
-                    md5_hash.update(chunk)
-
-            # Classify file type using FILE_CATEGORIES
-            file_category = "other"
-            for category, extensions in FILE_CATEGORIES.items():
-                if file_extension in extensions:
-                    file_category = category
-                    break
-
-            # Get MIME type
-            mime_type, _ = mimetypes.guess_type(file_path)
-            
-            # Build metadata
-            metadata = {
-                "basic_info": {
-                    "name": file_name,
-                    "extension": file_extension,
-                    "category": file_category,
-                    "size": file_stat.st_size,
-                    "size_readable": f"{file_stat.st_size / (1024*1024):.2f} MB"
-                },
-                "classification": {
-                    "category": file_category,
-                    "mime_type": mime_type or "unknown",
-                    "is_hidden": file_name.startswith('.'),
-                    "is_system_file": any(file_name.endswith(ext) for ext in ['.sys', '.dll', '.exe'])
-                },
-                "timestamps": {
-                    "created": datetime.fromtimestamp(file_stat.st_ctime).isoformat(),
-                    "modified": datetime.fromtimestamp(file_stat.st_mtime).isoformat(),
-                    "accessed": datetime.fromtimestamp(file_stat.st_atime).isoformat()
-                }
-            }
-            
-            return metadata
-            
-        except Exception as e:
-            return {"error": str(e)}
+def error_response(message, status_code=500):
+    """Helper function for consistent error responses"""
+    return jsonify({"error": str(message)}), status_code
 
 # Routes
 @app.route('/api/drives')
@@ -450,6 +394,8 @@ def analyze_file(file_path):
 def watch_directory():
     try:
         data = request.json
+        if not data:
+            return error_response("No data provided", 400)
         watch_dir = data.get('watch_directory')
         organization_dir = data.get('organization_directory')
 
@@ -479,74 +425,7 @@ def watch_directory():
         })
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
-@app.route('/api/search')
-def search_files():
-    query = request.args.get('query', '').lower().strip()
-    path = request.args.get('path', '').strip()
-    
-    if not query or not path:
-        return jsonify([])
-    
-    try:
-        results = []
-        # Search in current directory and subdirectories
-        for root, dirs, files in os.walk(path):
-            # Skip hidden directories
-            dirs[:] = [d for d in dirs if not d.startswith('.')]
-            
-            # Search in directories first
-            for dirname in dirs:
-                if query in dirname.lower():
-                    full_path = os.path.join(root, dirname)
-                    try:
-                        results.append({
-                            "name": dirname,
-                            "path": full_path,
-                            "type": "directory",
-                            "size": 0,
-                            "modified": os.path.getmtime(full_path),
-                            "highlightedName": highlight_text(dirname, query)
-                        })
-                    except (PermissionError, OSError):
-                        continue
-
-            # Then search in files
-            for filename in files:
-                if query in filename.lower():
-                    full_path = os.path.join(root, filename)
-                    try:
-                        results.append({
-                            "name": filename,
-                            "path": full_path,
-                            "type": "file",
-                            "size": os.path.getsize(full_path),
-                            "modified": os.path.getmtime(full_path),
-                            "highlightedName": highlight_text(filename, query)
-                        })
-                    except (PermissionError, OSError):
-                        continue
-
-            # Limit results to first 100 matches
-            if len(results) >= 100:
-                break
-
-        # Sort results: directories first, then alphabetically
-        results.sort(key=lambda x: (x['type'] != 'directory', x['name'].lower()))
-        
-        return jsonify(results)
-        
-    except Exception as e:
-        print(f"Search error: {e}")  # Debug log
-        return jsonify({"error": str(e)})
-
-@app.route('/api/initialize')
-def initialize_app():
-    try:
-        drives = get_system_drives()
-        return jsonify({"status": "success", "drives": drives})
-    except Exception as e:
-        return jsonify({"error": str(e)})
+        return error_response(e)
 
 @app.route('/api/files/category/<category>')
 def get_files_by_category(category):
@@ -611,48 +490,84 @@ def organize_files():
         
         if not files:
             return jsonify({"error": "No files selected"})
+            
+        # Add file limit check
+        MAX_FILES = 1000
+        if len(files) > MAX_FILES:
+            return jsonify({"error": f"Too many files. Maximum allowed: {MAX_FILES}"}), 400
+        
+        # Validate file_classifier initialization
+        if not file_classifier:
+            return jsonify({"error": "File classifier not initialized"}), 500
         
         organized = []
         errors = []
         
         for file_path in files:
             try:
+                # Validate path format
+                if platform.system() == "Windows" and not (file_path[1:3] == ':/'):
+                    errors.append(f"Invalid path format for {file_path}")
+                    continue
+                    
                 if os.path.exists(file_path):
                     # Get file category
-                    category = file_classifier.classify_file(file_path)
+                    try:
+                        category = file_classifier.classify_file(file_path)
+                    except Exception as classify_error:
+                        errors.append(f"Classification error for {file_path}: {str(classify_error)}")
+                        continue
                     
-                    # Create category directory in same location as file
+                    # Create category directory
                     parent_dir = os.path.dirname(file_path)
                     category_dir = os.path.join(parent_dir, category)
                     
-                    # Create directory if it doesn't exist
-                    if not os.path.exists(category_dir):
-                        os.makedirs(category_dir)
+                    try:
+                        if not os.path.exists(category_dir):
+                            os.makedirs(category_dir)
+                    except PermissionError:
+                        errors.append(f"Permission denied creating directory: {category_dir}")
+                        continue
                     
-                    # Move file to category directory
+                    # Move file
                     filename = os.path.basename(file_path)
                     new_path = os.path.join(category_dir, filename)
                     
-                    # Handle duplicate filenames
+                    # Handle duplicates
                     counter = 1
                     while os.path.exists(new_path):
                         name, ext = os.path.splitext(filename)
                         new_path = os.path.join(category_dir, f"{name}_{counter}{ext}")
                         counter += 1
                     
-                    os.rename(file_path, new_path)
+                    try:
+                        os.rename(file_path, new_path)
+                    except OSError:
+                        # Handle cross-device moves
+                        try:
+                            shutil.move(file_path, new_path)
+                        except Exception as move_error:
+                            errors.append(f"Error moving {file_path}: {str(move_error)}")
+                            continue
+                            
                     organized.append(file_path)
+                else:
+                    errors.append(f"File not found: {file_path}")
+                    
             except Exception as e:
                 errors.append(f"Error organizing {file_path}: {str(e)}")
         
         return jsonify({
             "organized": organized,
             "errors": errors,
-            "message": f"Successfully organized {len(organized)} files"
+            "message": f"Successfully organized {len(organized)} files",
+            "total_processed": len(files),
+            "success_count": len(organized),
+            "error_count": len(errors)
         })
         
     except Exception as e:
-        return jsonify({"error": str(e)})
+        return jsonify({"error": str(e)}), 500
 
 @app.route('/api/open', methods=['POST'])
 def open_file():
@@ -675,29 +590,6 @@ def open_file():
             
     except Exception as e:
         return jsonify({"error": str(e)})
-
-def highlight_text(text, query):
-    """Split text into parts to be highlighted"""
-    lower_text = text.lower()
-    lower_query = query.lower()
-    parts = []
-    last_idx = 0
-    
-    idx = lower_text.find(lower_query)
-    while idx != -1:
-        # Add non-matching part
-        if idx > last_idx:
-            parts.append({"text": text[last_idx:idx], "highlight": False})
-        # Add matching part
-        parts.append({"text": text[idx:idx + len(query)], "highlight": True})
-        last_idx = idx + len(query)
-        idx = lower_text.find(lower_query, last_idx)
-    
-    # Add remaining text
-    if last_idx < len(text):
-        parts.append({"text": text[last_idx:], "highlight": False})
-    
-    return parts
 
 if __name__ == '__main__':
     app.run(port=5000, debug=True)
