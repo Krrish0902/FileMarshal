@@ -3,6 +3,8 @@ let currentIndex = -1;
 let searchTimeout = null;
 const SEARCH_DELAY = 300;
 let lastSearchQuery = '';
+let currentSort = { field: 'name', direction: 'asc' };
+let currentView = 'grid';
 
 async function loadDrives() {
     try {
@@ -112,16 +114,43 @@ function updateNavigationButtons() {
     forwardBtn.disabled = currentIndex >= navigationHistory.length - 1;
 }
 
+function sortFiles(files, field, direction) {
+    return [...files].sort((a, b) => {
+        let compareVal;
+        switch (field) {
+            case 'name':
+                compareVal = a.name.localeCompare(b.name);
+                break;
+            case 'size':
+                compareVal = (a.size || 0) - (b.size || 0);
+                break;
+            case 'modified':
+                compareVal = (a.modified || 0) - (b.modified || 0);
+                break;
+            case 'type':
+                compareVal = a.type.localeCompare(b.type);
+                break;
+            default:
+                compareVal = 0;
+        }
+        return direction === 'asc' ? compareVal : -compareVal;
+    });
+}
+
 function displayFiles(files) {
     const filesContainer = document.querySelector('.files');
     filesContainer.innerHTML = '';
+    filesContainer.className = `files ${currentView}-view`;
 
     if (!files || files.length === 0) {
         filesContainer.innerHTML = '<div class="no-results">No files found</div>';
         return;
     }
 
-    files.forEach(file => {
+    // Sort files before display
+    const sortedFiles = sortFiles(files, currentSort.field, currentSort.direction);
+
+    sortedFiles.forEach(file => {
         const fileElement = document.createElement('div');
         fileElement.className = 'file-item';
         
@@ -145,14 +174,68 @@ function displayFiles(files) {
             nameElement.textContent = file.name;
         }
 
-        fileElement.appendChild(iconElement);
-        fileElement.appendChild(nameElement);
+        if (currentView === 'list') {
+            const details = document.createElement('div');
+            details.className = 'file-details';
+            details.innerHTML = `
+                <span>${file.type}</span>
+                <span>${formatSize(file.size)}</span>
+                <span>${formatDate(file.modified)}</span>
+            `;
+            fileElement.appendChild(iconElement);
+            fileElement.appendChild(nameElement);
+            fileElement.appendChild(details);
+        } else {
+            fileElement.appendChild(iconElement);
+            fileElement.appendChild(nameElement);
+        }
 
         if (file.type === 'directory') {
             fileElement.addEventListener('click', () => loadFiles(file.path));
         }
 
+        // Add context menu
+        fileElement.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            showContextMenu(e, file);
+        });
+
         filesContainer.appendChild(fileElement);
+    });
+}
+
+function formatSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+function formatDate(timestamp) {
+    return new Date(timestamp * 1000).toLocaleDateString();
+}
+
+function showContextMenu(event, file) {
+    const contextMenu = document.createElement('div');
+    contextMenu.className = 'context-menu';
+    contextMenu.innerHTML = `
+        <div class="context-menu-item">Open</div>
+        <div class="context-menu-item">Copy</div>
+        <div class="context-menu-item">Cut</div>
+        <div class="context-menu-item">Delete</div>
+        <div class="context-menu-item">Rename</div>
+        <div class="context-menu-item">Properties</div>
+    `;
+
+    contextMenu.style.left = `${event.pageX}px`;
+    contextMenu.style.top = `${event.pageY}px`;
+    document.body.appendChild(contextMenu);
+
+    // Close menu on click outside
+    document.addEventListener('click', function closeMenu() {
+        contextMenu.remove();
+        document.removeEventListener('click', closeMenu);
     });
 }
 
@@ -217,5 +300,49 @@ document.addEventListener('DOMContentLoaded', () => {
                 searchFiles(query, currentPath);
             }
         }
+    });
+
+    // Add sort button listener
+    document.getElementById('sortBtn').addEventListener('click', function() {
+        const dropdown = document.querySelector('.sort-dropdown');
+        dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
+    });
+
+    // Add view button listener
+    document.getElementById('viewBtn').addEventListener('click', function() {
+        const dropdown = document.querySelector('.view-dropdown');
+        dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
+    });
+
+    // Add sort options listeners
+    document.querySelectorAll('.sort-option').forEach(option => {
+        option.addEventListener('click', function() {
+            const field = this.dataset.sort;
+            currentSort.direction = currentSort.field === field ? 
+                (currentSort.direction === 'asc' ? 'desc' : 'asc') : 'asc';
+            currentSort.field = field;
+            
+            // Update active sort option
+            document.querySelectorAll('.sort-option').forEach(opt => {
+                opt.classList.remove('active', 'desc');
+            });
+            this.classList.add('active');
+            if (currentSort.direction === 'desc') {
+                this.classList.add('desc');
+            }
+            
+            // Refresh current view
+            const currentPath = document.querySelector('.current-path').textContent;
+            loadFiles(currentPath);
+        });
+    });
+
+    // Add view options listeners
+    document.querySelectorAll('.view-option').forEach(option => {
+        option.addEventListener('click', function() {
+            currentView = this.dataset.view;
+            const currentPath = document.querySelector('.current-path').textContent;
+            loadFiles(currentPath);
+        });
     });
 });

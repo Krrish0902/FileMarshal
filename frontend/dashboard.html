@@ -29,6 +29,22 @@
                     <span class="current-path"></span>
                 </div>
                 <div class="nav-right">
+                    <div class="sort-container">
+                        <button id="sortBtn">Sort By ▾</button>
+                        <div class="sort-dropdown">
+                            <div class="sort-option" data-sort="name">Name</div>
+                            <div class="sort-option" data-sort="size">Size</div>
+                            <div class="sort-option" data-sort="modified">Date Modified</div>
+                            <div class="sort-option" data-sort="type">Type</div>
+                        </div>
+                    </div>
+                    <div class="view-container">
+                        <button id="viewBtn">View ▾</button>
+                        <div class="view-dropdown">
+                            <div class="view-option" data-view="grid">Grid</div>
+                            <div class="view-option" data-view="list">List</div>
+                        </div>
+                    </div>
                     <div class="search-container">
                         <input type="text" id="searchInput" placeholder="Search files...">
                         <button id="searchBtn">🔍</button>

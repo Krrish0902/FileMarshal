@@ -435,3 +435,106 @@ html, body {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
 }
+
+/* Sort and View Controls */
+.sort-container, .view-container {
+    position: relative;
+    margin-right: 15px;
+}
+
+#sortBtn, #viewBtn {
+    padding: 8px 15px;
+    background: #2d2d2d;
+    border: 1px solid #404040;
+    color: #e0e0e0;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.sort-dropdown, .view-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background: #1a1a1a;
+    border: 1px solid #404040;
+    border-radius: 4px;
+    margin-top: 5px;
+    display: none;
+    z-index: 100;
+    min-width: 150px;
+}
+
+.sort-option, .view-option {
+    padding: 8px 15px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.sort-option:hover, .view-option:hover {
+    background: #2d2d2d;
+}
+
+/* List View Styles */
+.files.list-view {
+    display: block;
+    padding: 0;
+}
+
+.files.list-view .file-item {
+    display: grid;
+    grid-template-columns: auto 1fr auto auto auto;
+    align-items: center;
+    text-align: left;
+    padding: 10px 15px;
+    margin-bottom: 2px;
+    border-radius: 4px;
+}
+
+.files.list-view .file-icon {
+    margin: 0 10px 0 0;
+    font-size: 20px;
+}
+
+.files.list-view .file-details {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+    color: #888;
+    font-size: 12px;
+}
+
+/* Sort Indicators */
+.sort-option.active::after {
+    content: " ↓";
+    color: #888;
+}
+
+.sort-option.active.desc::after {
+    content: " ↑";
+}
+
+/* Context Menu */
+.context-menu {
+    position: fixed;
+    background: #1a1a1a;
+    border: 1px solid #404040;
+    border-radius: 4px;
+    padding: 5px 0;
+    min-width: 150px;
+    z-index: 1000;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+}
+
+.context-menu-item {
+    padding: 8px 15px;
+    cursor: pointer;
+    transition: background 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.context-menu-item:hover {
+    background: #2d2d2d;
+}
