@@ -8,6 +8,8 @@ from concurrent.futures import ThreadPoolExecutor
 import time
 from file_classifier import FileClassifier
 import mimetypes
+from ctypes import windll  # Add at the top with other imports
+import urllib.parse  # Add at the top
 
 app = Flask(__name__)
 CORS(app)
@@ -23,6 +25,8 @@ def get_system_drives():
         try:
             drives = []
             bitmask = windll.kernel32.GetLogicalDrives()
+            if bitmask == 0:  # Add check for invalid bitmask
+                raise OSError("Failed to get logical drives")
             for letter in string.ascii_uppercase:
                 if bitmask & 1:
                     drive = f"{letter}:"
@@ -95,11 +99,9 @@ def get_files(directory):
     try:
         # Handle Windows drive paths
         if platform.system() == "Windows":
-            # First, decode any URL-encoded characters
-            directory = directory.replace('%7C', '|')  # Handle encoded pipe
+            # Handle URL encoding and normalization
+            directory = urllib.parse.unquote(directory)
             directory = directory.replace('|', ':')
-            
-            # Clean up the path
             directory = os.path.normpath(directory)
             
             # Add backslash for root directory
@@ -235,10 +237,9 @@ def get_files_by_category(category):
                 full_path = os.path.join(root, file)
                 try:
                     # Get file category
-                    if category == 'all':
-                        file_category = 'all'
-                    else:
-                        file_category = file_classifier.classify_file(full_path)
+                    file_category = file_classifier.classify_file(full_path) if category != 'all' else 'all'
+                    if file_category is None:  # Add check for failed classification
+                        continue
                     
                     # Debug log
                     print(f"File: {file}, Category: {file_category}")
@@ -272,6 +273,8 @@ def get_files_by_category(category):
 @app.route('/api/organize', methods=['POST'])
 def organize_files():
     try:
+        if request.content_length > 1024 * 1024:  # 1MB limit
+            return jsonify({"error": "Request too large"})
         data = request.json
         files = data.get('files', [])
         
@@ -283,6 +286,9 @@ def organize_files():
         
         for file_path in files:
             try:
+                if not os.path.exists(file_path):
+                    errors.append(f"File not found: {file_path}")
+                    continue
                 if os.path.exists(file_path):
                     # Get file category
                     category = file_classifier.classify_file(file_path)
@@ -309,6 +315,12 @@ def organize_files():
                     os.rename(file_path, new_path)
                     organized.append(file_path)
             except Exception as e:
+                # Try to restore file if move failed
+                if 'new_path' in locals() and os.path.exists(new_path):
+                    try:
+                        os.rename(new_path, file_path)
+                    except:
+                        pass
                 errors.append(f"Error organizing {file_path}: {str(e)}")
         
         return jsonify({

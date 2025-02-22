@@ -67,9 +67,14 @@ async function loadFiles(path, addToHistory = true) {
             navigationHistory.push(path);
         }
         
+        // Clear selection when loading new directory
+        selectedFiles.clear();
+        isSelectionMode = false;
+        
         // Update UI elements safely
         displayFiles(data);
-        
+        updateSelectionControls();
+
         const pathElement = document.querySelector('.current-path');
         if (pathElement) {
             pathElement.textContent = path;
@@ -577,4 +582,50 @@ function displaySuccess(message) {
         document.querySelector('.files')
     );
     setTimeout(() => successElement.remove(), 3000);
+}
+
+// Add the updateSelectionControls function
+function updateSelectionControls() {
+    const selectionCount = selectedFiles.size;
+    const totalFiles = document.querySelectorAll('.file-item').length;
+    let selectionControls = document.querySelector('.selection-controls');
+    
+    if (selectionCount > 0) {
+        if (!selectionControls) {
+            selectionControls = document.createElement('div');
+            selectionControls.className = 'selection-controls';
+            selectionControls.innerHTML = `
+                <div class="selection-info">
+                    <span class="selection-count">${selectionCount} of ${totalFiles} selected</span>
+                </div>
+                <div class="selection-actions">
+                    <button id="organizeBtn">Organize Selected</button>
+                    <button id="clearSelectionBtn">Clear Selection</button>
+                </div>
+            `;
+            document.querySelector('.file-view').insertBefore(
+                selectionControls,
+                document.querySelector('.files')
+            );
+
+            // Add event listeners
+            document.getElementById('organizeBtn')?.addEventListener('click', organizeSelectedFiles);
+            document.getElementById('clearSelectionBtn')?.addEventListener('click', clearSelection);
+        } else {
+            selectionControls.querySelector('.selection-count').textContent = 
+                `${selectionCount} of ${totalFiles} selected`;
+        }
+    } else if (selectionControls) {
+        selectionControls.remove();
+        isSelectionMode = false;
+    }
+}
+
+// Add clear selection function if not already present
+function clearSelection() {
+    selectedFiles.clear();
+    document.querySelectorAll('.file-item').forEach(item => {
+        item.classList.remove('selected');
+    });
+    updateSelectionControls();
 }
