@@ -42,19 +42,34 @@
     <script src="fileManager.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', async () => {
-            const drives = await loadDrives();
-            const drivesList = document.getElementById('drives-list');
-            drives.forEach(drive => {
-                const driveElement = document.createElement('div');
-                driveElement.className = 'drive-item';
-                driveElement.textContent = drive;
-                driveElement.onclick = () => loadFiles(drive);
-                drivesList.appendChild(driveElement);
-            });
-            
-            // Add navigation button event listeners
-            document.getElementById('backBtn').addEventListener('click', goBack);
-            document.getElementById('forwardBtn').addEventListener('click', goForward);
+            try {
+                // Load drives immediately
+                const drives = await loadDrives();
+                const drivesList = document.getElementById('drives-list');
+                
+                // Clear existing content
+                drivesList.innerHTML = '';
+                
+                // Add drives to sidebar
+                drives.forEach(drive => {
+                    const driveElement = document.createElement('div');
+                    driveElement.className = 'drive-item';
+                    driveElement.textContent = drive;
+                    driveElement.onclick = () => loadFiles(drive);
+                    drivesList.appendChild(driveElement);
+                });
+
+                // Load first drive's contents automatically
+                if (drives.length > 0) {
+                    loadFiles(drives[0]);
+                }
+                
+                // Add navigation button event listeners
+                document.getElementById('backBtn').addEventListener('click', goBack);
+                document.getElementById('forwardBtn').addEventListener('click', goForward);
+            } catch (error) {
+                console.error('Failed to initialize dashboard:', error);
+            }
         });
     </script>
 </body>

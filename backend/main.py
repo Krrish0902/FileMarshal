@@ -4,9 +4,14 @@ import os
 import platform
 import string
 import json
+from concurrent.futures import ThreadPoolExecutor
+import time
 
 app = Flask(__name__)
 CORS(app)
+
+# Add global variable for file cache
+file_cache = {}
 
 def get_system_drives():
     if platform.system() == "Windows":
@@ -24,15 +29,25 @@ def scan_directory(path):
     try:
         items = []
         for entry in os.scandir(path):
-            item = {
-                "name": entry.name,
-                "path": entry.path,
-                "type": "directory" if entry.is_dir() else "file",
-                "size": os.path.getsize(entry.path) if entry.is_file() else 0,
-                "modified": os.path.getmtime(entry.path)
-            }
-            items.append(item)
-        return items
+            # Skip hidden files and directories
+            if entry.name.startswith('.'):
+                continue
+                
+            try:
+                item = {
+                    "name": entry.name,
+                    "path": entry.path,
+                    "type": "directory" if entry.is_dir() else "file",
+                    "size": os.path.getsize(entry.path) if entry.is_file() else 0,
+                    "modified": os.path.getmtime(entry.path)
+                }
+                items.append(item)
+            except (PermissionError, OSError):
+                continue
+                
+        # Sort items: directories first, then files
+        return sorted(items, 
+                     key=lambda x: (x['type'] != 'directory', x['name'].lower()))
     except Exception as e:
         return {"error": str(e)}
 
@@ -54,69 +69,38 @@ def search_files():
     
     try:
         results = []
-        # Limit search depth to prevent hanging
-        max_depth = 5
+        drive = path[0] + ":" if platform.system() == "Windows" else "/"
         
-        for root, dirs, files in os.walk(path):
-            # Check search depth
-            relative_path = os.path.relpath(root, path)
-            if relative_path != '.' and relative_path.count(os.sep) >= max_depth:
-                continue
-            
-            # Search in directory names
-            for dir_name in dirs[:]:  # Copy the list to avoid modification during iteration
-                if query in dir_name.lower():
-                    full_path = os.path.join(root, dir_name)
-                    try:
-                        modified = os.path.getmtime(full_path)
-                        query_pos = dir_name.lower().find(query)
-                        
-                        results.append({
-                            "name": dir_name,
-                            "highlightedName": [
-                                {"text": dir_name[:query_pos], "highlight": False},
-                                {"text": dir_name[query_pos:query_pos + len(query)], "highlight": True},
-                                {"text": dir_name[query_pos + len(query):], "highlight": False}
-                            ],
-                            "path": full_path,
-                            "type": "directory",
-                            "size": 0,
-                            "modified": modified
-                        })
-                    except (OSError, PermissionError):
-                        continue
-            
-            # Search in file names
-            for file_name in files:
-                if query in file_name.lower():
-                    full_path = os.path.join(root, file_name)
-                    try:
-                        size = os.path.getsize(full_path)
-                        modified = os.path.getmtime(full_path)
-                        query_pos = file_name.lower().find(query)
-                        
-                        results.append({
-                            "name": file_name,
-                            "highlightedName": [
-                                {"text": file_name[:query_pos], "highlight": False},
-                                {"text": file_name[query_pos:query_pos + len(query)], "highlight": True},
-                                {"text": file_name[query_pos + len(query):], "highlight": False}
-                            ],
-                            "path": full_path,
-                            "type": "file",
-                            "size": size,
-                            "modified": modified
-                        })
-                    except (OSError, PermissionError):
-                        continue
-            
-            # Limit results to prevent overwhelming
-            if len(results) >= 100:
-                break
-                
+        # Search in cache if available
+        if drive in file_cache:
+            cached_files = file_cache[drive]
+            for item in cached_files:
+                if (item['path'].startswith(path) and 
+                    query in item['name'].lower()):
+                    name = item['name']
+                    query_pos = name.lower().find(query)
+                    
+                    item['highlightedName'] = [
+                        {"text": name[:query_pos], "highlight": False},
+                        {"text": name[query_pos:query_pos + len(query)], "highlight": True},
+                        {"text": name[query_pos + len(query):], "highlight": False}
+                    ]
+                    results.append(item)
+                    
+                    if len(results) >= 100:
+                        break
+        
         return jsonify(results)
     except Exception as e:
         print(f"Search error: {e}")
+        return jsonify({"error": str(e)})
+
+@app.route('/api/initialize')
+def initialize_app():
+    try:
+        drives = get_system_drives()
+        return jsonify({"status": "success", "drives": drives})
+    except Exception as e:
         return jsonify({"error": str(e)})
 
 def highlight_text(text, query):

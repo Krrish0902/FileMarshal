@@ -22,7 +22,6 @@ async function loadFiles(path, addToHistory = true) {
         const files = await response.json();
         
         if (addToHistory) {
-            // Add new path to history
             currentIndex++;
             navigationHistory = navigationHistory.slice(0, currentIndex);
             navigationHistory.push(path);
@@ -33,6 +32,7 @@ async function loadFiles(path, addToHistory = true) {
         document.querySelector('.current-path').textContent = path;
     } catch (error) {
         console.error('Error loading files:', error);
+        displayError(`Failed to load files from ${path}`);
     }
 }
 
