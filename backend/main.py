@@ -1,5 +1,5 @@
 from flask import Flask
-from controllers.file_controller import FileController
+from controllers.file_controllers import FileController
 
 app = Flask(__name__)
 

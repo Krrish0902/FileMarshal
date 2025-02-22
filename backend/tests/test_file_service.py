@@ -1,5 +1,5 @@
 import unittest
-from src.services.file_service import FileService
+from services.file_service import FileService
 
 class TestFileService(unittest.TestCase):
 
