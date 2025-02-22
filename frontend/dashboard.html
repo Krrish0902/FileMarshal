@@ -9,36 +9,23 @@
 <body>
     <div class="container">
         <nav class="sidebar">
-            <h2>File Marshal</h2>
-            <div id="drives-list"></div>
+            <h2>File Organizer</h2>
             <ul>
-                <li data-type="all">📁 All Files</li>
-                <li data-type="image">🖼️ Images</li>
-                <li data-type="video">🎥 Videos</li>
-                <li data-type="document">📄 Documents</li>
-                <li data-type="audio">🎵 Audio</li>
-                <li data-type="archive">📦 Archives</li>
-                <li data-type="other">📂 Others</li>
+                <li>📁 All Files</li>
+                <li>🖼️ Images</li>
+                <li>🎥 Videos</li>
+                <li>📄 Documents</li>
+                <li>🎵 Audio</li>
+                <li>📦 Archives</li>
+                <li>📂 Others</li>
             </ul>
         </nav>
         <main class="file-view">
             <h1>All Files</h1>
-            <div class="files"></div>
+            <div class="files">
+                <!-- Files dynamically displayed here -->
+            </div>
         </main>
     </div>
-    <script src="fileManager.js"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', async () => {
-            const drives = await loadDrives();
-            const drivesList = document.getElementById('drives-list');
-            drives.forEach(drive => {
-                const driveElement = document.createElement('div');
-                driveElement.className = 'drive-item';
-                driveElement.textContent = drive;
-                driveElement.onclick = () => loadFiles(drive);
-                drivesList.appendChild(driveElement);
-            });
-        });
-    </script>
 </body>
 </html>

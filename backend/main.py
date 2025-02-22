@@ -46,6 +46,7 @@ def get_files(directory):
 
 if __name__ == '__main__':
     app.run(port=5000, debug=True)
+=======
 from flask import Flask
 from controllers.file_controller import FileController
 
