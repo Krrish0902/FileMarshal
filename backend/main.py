@@ -5,13 +5,14 @@ import platform
 import string
 import shutil
 from urllib.parse import unquote
-import mimetypes
-import hashlib
 from datetime import datetime
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 from file_classifier import FileClassifier
 import subprocess
+from tika import parser
+import tika
+tika.initVM()
 
 app = Flask(__name__)
 CORS(app)
@@ -19,17 +20,6 @@ CORS(app)
 previous_files = {}
 file_cache = {}
 file_classifier = FileClassifier()
-
-FILE_CATEGORIES = {
-    "text": {".txt", ".srt", ".md", ".json", ".xml"},  # Remove .pdf
-    "document": {".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx", ".tex", ".csv", ".tsv"},
-    "image": {".jpg", ".jpeg", ".png", ".gif", ".bmp", ".tiff", ".svg", ".webp"},
-    "audio": {".mp3", ".wav", ".aac", ".flac", ".ogg", ".m4a"},
-    "video": {".mp4", ".avi", ".mkv", ".mov", ".wmv", ".flv", ".webm"},
-    "compressed": {".zip", ".rar", ".tar", ".gz", ".7z"},
-    "code": {".py", ".js", ".java", ".cpp", ".h", ".cs", ".php", ".rb", ".c", ".html", ".css", ".jsx", ".ts", ".tsx", ".go", ".swift", ".pl", ".sql", ".r", ".sh", ".bat", ".ps1", ".cmd", ".yaml", ".yml", ".ini", ".cfg", ".rst", ".ipynb", ".rmd", }
-}
-
 
 def get_system_drives():
     if platform.system() == "Windows":
@@ -126,70 +116,29 @@ def highlight_text(text, query):
 def scan_and_classify_file(file_path):
     """Scans a file and returns both metadata and classification"""
     try:
-        # Basic file information
         file_stat = os.stat(file_path)
         file_name = os.path.basename(file_path)
-        file_extension = os.path.splitext(file_name)[1].lower()
         
-        # Calculate file hash
-        md5_hash = hashlib.md5()
-        with open(file_path, "rb") as f:
-            for chunk in iter(lambda: f.read(4096), b""):
-                md5_hash.update(chunk)
-
-        # Classify file type
-        file_category = "other"
-        for category, extensions in FILE_CATEGORIES.items():
-            if file_extension in extensions:
-                file_category = category
-                break
-
-        # Get MIME type
-        mime_type, _ = mimetypes.guess_type(file_path)
+        # Use FileClassifier for categorization
+        classification = file_classifier.classify_file(file_path)
+        category, subcategory = classification.split('/') if '/' in classification else (classification, None)
         
-        # Build metadata object
         metadata = {
             "basic_info": {
                 "name": file_name,
-                "extension": file_extension,
-                "category": file_category,
+                "category": category,
+                "subcategory": subcategory,
                 "size": file_stat.st_size,
                 "size_readable": f"{file_stat.st_size / (1024*1024):.2f} MB"
-            },
-            "classification": {
-                "category": file_category,
-                "mime_type": mime_type or "unknown",
-                "is_hidden": file_name.startswith('.'),
-                "is_system_file": any(file_name.endswith(ext) for ext in ['.sys', '.dll', '.exe'])
             },
             "timestamps": {
                 "created": datetime.fromtimestamp(file_stat.st_ctime).isoformat(),
                 "modified": datetime.fromtimestamp(file_stat.st_mtime).isoformat(),
                 "accessed": datetime.fromtimestamp(file_stat.st_atime).isoformat()
-            },
-            "security": {
-                "md5_hash": md5_hash.hexdigest(),
-                "permissions": oct(file_stat.st_mode)[-3:]
             }
         }
-
-        # Add preview for text files
-        if file_category in ["text", "code"]:
-            try:
-                with open(file_path, 'r', encoding='utf-8') as f:
-                    preview = f.read(1000)  # Read first 1000 characters
-                    metadata["preview"] = {
-                        "content": preview,
-                        "encoding": "utf-8",
-                        "truncated": len(preview) == 1000
-                    }
-            except UnicodeDecodeError:
-                metadata["preview"] = {
-                    "error": "File content cannot be previewed (binary or unknown encoding)"
-                }
-
+        
         return metadata
-
     except Exception as e:
         return {"error": str(e)}
 
@@ -209,7 +158,7 @@ class FileHandler(FileSystemEventHandler):
         try:
             # Use the global scan_and_classify_file function
             metadata = scan_and_classify_file(file_path)
-            category = metadata['classification']['category']
+            category = metadata['basic_info']['category']
             
             # Create category directory if it doesn't exist
             category_dir = os.path.join(self.organization_directory, category)
@@ -490,72 +439,55 @@ def organize_files():
         
         if not files:
             return jsonify({"error": "No files selected"})
-            
-        # Add file limit check
-        MAX_FILES = 1000
-        if len(files) > MAX_FILES:
-            return jsonify({"error": f"Too many files. Maximum allowed: {MAX_FILES}"}), 400
-        
-        # Validate file_classifier initialization
-        if not file_classifier:
-            return jsonify({"error": "File classifier not initialized"}), 500
         
         organized = []
         errors = []
         
         for file_path in files:
             try:
-                # Validate path format
-                if platform.system() == "Windows" and not (file_path[1:3] == ':/'):
-                    errors.append(f"Invalid path format for {file_path}")
-                    continue
-                    
-                if os.path.exists(file_path):
-                    # Get file category
-                    try:
-                        category = file_classifier.classify_file(file_path)
-                    except Exception as classify_error:
-                        errors.append(f"Classification error for {file_path}: {str(classify_error)}")
-                        continue
-                    
-                    # Create category directory
-                    parent_dir = os.path.dirname(file_path)
-                    category_dir = os.path.join(parent_dir, category)
-                    
-                    try:
-                        if not os.path.exists(category_dir):
-                            os.makedirs(category_dir)
-                    except PermissionError:
-                        errors.append(f"Permission denied creating directory: {category_dir}")
-                        continue
-                    
-                    # Move file
-                    filename = os.path.basename(file_path)
-                    new_path = os.path.join(category_dir, filename)
-                    
-                    # Handle duplicates
-                    counter = 1
-                    while os.path.exists(new_path):
-                        name, ext = os.path.splitext(filename)
-                        new_path = os.path.join(category_dir, f"{name}_{counter}{ext}")
-                        counter += 1
-                    
-                    try:
-                        os.rename(file_path, new_path)
-                    except OSError:
-                        # Handle cross-device moves
-                        try:
-                            shutil.move(file_path, new_path)
-                        except Exception as move_error:
-                            errors.append(f"Error moving {file_path}: {str(move_error)}")
-                            continue
-                            
-                    organized.append(file_path)
-                else:
+                if not os.path.exists(file_path):
                     errors.append(f"File not found: {file_path}")
+                    continue
+                
+                # Debug logging
+                print(f"Processing file: {file_path}")
+                
+                # Get category with subcategory
+                category_path = file_classifier.classify_file(file_path)
+                print(f"Classified as: {category_path}")
+                
+                main_category, subcategory = category_path.split('/') if '/' in category_path else (category_path, None)
+                
+                # Create category directories
+                parent_dir = os.path.dirname(file_path)
+                category_dir = os.path.join(parent_dir, main_category)
+                
+                if subcategory:
+                    category_dir = os.path.join(category_dir, subcategory)
                     
+                os.makedirs(category_dir, exist_ok=True)
+                
+                # Move file
+                filename = os.path.basename(file_path)
+                new_path = os.path.join(category_dir, filename)
+                
+                # Handle duplicates
+                counter = 1
+                while os.path.exists(new_path):
+                    name, ext = os.path.splitext(filename)
+                    new_path = os.path.join(category_dir, f"{name}_{counter}{ext}")
+                    counter += 1
+                
+                shutil.move(file_path, new_path)
+                organized.append({
+                    "file": file_path,
+                    "category": main_category,
+                    "subcategory": subcategory,
+                    "new_path": new_path
+                })
+                
             except Exception as e:
-                errors.append(f"Error organizing {file_path}: {str(e)}")
+                errors.append(f"Error with {file_path}: {str(e)}")
         
         return jsonify({
             "organized": organized,
