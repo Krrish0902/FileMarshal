@@ -1,0 +1,14 @@
+flask
+scikit-learn
+nltk
+spacy
+opencv-python
+watchdog
+python-magic
+numpy 
+pandas
+pillow
+pytest
+python-dotenv
+flask-cors
+black
