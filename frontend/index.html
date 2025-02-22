@@ -3,19 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI File Organizer</title>
+    <title>File Marshal - Home</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
 </head>
-<body>
-    <h1>AI File Organizer</h1>
-    <button id="check-status">Check Backend Status</button>
-    <p id="status"></p>
+<body class="home">
+    <!-- Background Image (Hidden if CSS Works) -->
+    <img src="https://source.unsplash.com/1600x900/?technology,files,dark" class="background-img">
+
+    <div class="home-container">
+        <h1 class="app-name">File Marshal</h1>
+        <p class="app-description">
+            A smart and intuitive file organizer that keeps your digital space structured effortlessly.
+        </p>
+        <button id="getStarted">Get Started</button>
+    </div>
 
     <script>
-        const { ipcRenderer } = require("electron");
-
-        document.getElementById("check-status").addEventListener("click", async () => {
-            const response = await ipcRenderer.invoke("get-status");
-            document.getElementById("status").innerText = response.message;
+        document.getElementById("getStarted").addEventListener("click", () => {
+            window.location.href = "loading.html";
         });
     </script>
 </body>

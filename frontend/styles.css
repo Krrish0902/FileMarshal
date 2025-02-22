@@ -1,0 +1,234 @@
+/* General */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Inter', sans-serif;
+}
+
+html, body {
+    height: 100%;
+    background: #121212;
+}
+
+/* Home Page */
+.home {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    color: white;
+    height: 100vh;
+}
+
+/* Background Image (CSS) */
+.home::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: url("https://source.unsplash.com/1600x900/?technology,files,dark") no-repeat center center/cover;
+    z-index: -1;
+    opacity: 0.6; /* Slight opacity for readability */
+}
+
+/* Fallback Background Image */
+.background-img {
+    position: absolute;
+    width: 100%;
+    height: 100vh;
+    object-fit: cover;
+    z-index: -1;
+    display: none; /* Hidden if CSS works */
+}
+
+/* Home Container */
+.home-container {
+    z-index: 2;
+    max-width: 600px;
+    padding: 20px;
+}
+
+/* Application Name with Typing Effect */
+.app-name {
+    font-size: 42px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    border-right: 3px solid;
+    width: max-content;
+    margin: 0 auto 10px auto;
+    white-space: nowrap;
+    overflow: hidden;
+    animation: 
+        typing 2s steps(11, end),
+        cursor .75s step-end 5,        /* Reduced from 8 to 5 blinks */
+        removeCursor 0s 1.5s forwards; /* Changed from 2s to 1.5s */
+}
+
+/* Typing Animation */
+@keyframes typing {
+    from { width: 0 }
+    to { width: 100% }
+}
+
+/* Cursor Animation */
+@keyframes cursor {
+    from, to { border-color: transparent }
+    50% { border-color: white }
+}
+
+/* Remove Cursor Animation */
+@keyframes removeCursor {
+    to {
+        border-right-color: transparent;
+    }
+}
+
+/* Description with fade-in effect */
+.app-description {
+    font-size: 18px;
+    font-weight: 300;
+    opacity: 0;
+    background: #121212;
+    padding: 10px 20px;
+    border-radius: 8px;
+    display: inline-block;
+    animation: fadeIn 1s ease-in forwards;
+    animation-delay: 2s;  /* Starts after app name typing */
+}
+
+/* Get Started Button with fade-in and slide-up */
+#getStarted {
+    margin-top: 20px;
+    padding: 12px 25px;
+    font-size: 18px;
+    font-weight: 500;
+    color: white;
+    background: #000000;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background 0.3s ease, transform 0.2s ease;
+    opacity: 0;
+    transform: translateY(20px);
+    animation: slideUp 1s ease forwards;
+    animation-delay: 3s;  /* Starts after description appears */
+}
+
+/* Animation Keyframes */
+@keyframes fadeIn {
+    from { 
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to { 
+        opacity: 0.85;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slideUp {
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Modify the hover effect to work with animation */
+#getStarted:hover {
+    background: #860d0d;
+    transform: scale(1.05) translateY(0);
+}
+
+/* Loading Page */
+.loading-page {
+    background: #121212;
+    color: white;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+}
+
+.loading-container {
+    text-align: center;
+}
+
+.icons {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.file-icon {
+    width: 40px;
+    animation: spin 2s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.progress-bar {
+    width: 300px;
+    height: 10px;
+    background: #333;
+    border-radius: 5px;
+    overflow: hidden;
+}
+
+#progress {
+    height: 100%;
+    width: 0%;
+    background: #f6f6f6;
+}
+
+/* Sidebar */
+.container {
+    display: flex;
+    height: 100vh;
+}
+
+.sidebar {
+    width: 250px;
+    background: #1e1e1e;
+    padding: 20px;
+    color: white;
+}
+
+.sidebar h2 {
+    font-size: 20px;
+    margin-bottom: 20px;
+}
+
+.sidebar ul {
+    list-style: none;
+}
+
+.sidebar li {
+    padding: 10px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.sidebar li:hover {
+    background: #333;
+}
+
+/* File View */
+.file-view {
+    flex: 1;
+    padding: 20px;
+    color: white;
+}
+
+.files {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 15px;
+}
