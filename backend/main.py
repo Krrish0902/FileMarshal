@@ -8,6 +8,7 @@ from concurrent.futures import ThreadPoolExecutor
 import time
 from file_classifier import FileClassifier
 import mimetypes
+import subprocess
 
 app = Flask(__name__)
 CORS(app)
@@ -235,6 +236,28 @@ def organize_files():
             "message": f"Successfully organized {len(organized)} files"
         })
         
+    except Exception as e:
+        return jsonify({"error": str(e)})
+
+@app.route('/api/open', methods=['POST'])
+def open_file():
+    try:
+        data = request.json
+        file_path = data.get('path')
+        
+        if not file_path or not os.path.exists(file_path):
+            return jsonify({"error": "Invalid file path"})
+
+        try:
+            if platform.system() == "Windows":
+                os.startfile(file_path)
+            else:
+                opener = "open" if platform.system() == "Darwin" else "xdg-open"
+                subprocess.call([opener, file_path])
+            return jsonify({"success": True})
+        except Exception as e:
+            return jsonify({"error": f"Failed to open file: {str(e)}"})
+            
     except Exception as e:
         return jsonify({"error": str(e)})
 

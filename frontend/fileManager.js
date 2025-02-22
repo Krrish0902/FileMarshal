@@ -250,6 +250,9 @@ function displayFiles(files) {
 
         if (file.type === 'directory') {
             fileElement.addEventListener('click', () => loadFiles(file.path));
+        } else {
+            // Add click handler for files
+            fileElement.addEventListener('click', () => openFile(file));
         }
 
         // Add context menu
@@ -265,6 +268,28 @@ function displayFiles(files) {
     });
     
     updateSelectionControls();
+}
+
+async function openFile(file) {
+    try {
+        const response = await fetch('http://localhost:5000/api/open', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                path: file.path
+            })
+        });
+        
+        const result = await response.json();
+        if (result.error) {
+            throw new Error(result.error);
+        }
+    } catch (error) {
+        console.error('Error opening file:', error);
+        displayError(`Failed to open file: ${error.message}`);
+    }
 }
 
 function formatSize(bytes) {
@@ -283,22 +308,54 @@ function showContextMenu(event, file) {
     const contextMenu = document.createElement('div');
     contextMenu.className = 'context-menu';
     contextMenu.innerHTML = `
-        <div class="context-menu-item">Open</div>
-        <div class="context-menu-item">Copy</div>
-        <div class="context-menu-item">Cut</div>
-        <div class="context-menu-item">Delete</div>
-        <div class="context-menu-item">Rename</div>
-        <div class="context-menu-item">Properties</div>
+        <div class="context-menu-item" data-action="open">
+            <span>🔍</span> Open
+        </div>
+        <div class="context-menu-item" data-action="copy">
+            <span>📋</span> Copy
+        </div>
+        <div class="context-menu-item" data-action="cut">
+            <span>✂️</span> Cut
+        </div>
+        <div class="context-menu-item" data-action="delete">
+            <span>🗑️</span> Delete
+        </div>
+        <div class="context-menu-item" data-action="rename">
+            <span>✏️</span> Rename
+        </div>
+        <div class="context-menu-item" data-action="properties">
+            <span>ℹ️</span> Properties
+        </div>
     `;
 
     contextMenu.style.left = `${event.pageX}px`;
     contextMenu.style.top = `${event.pageY}px`;
     document.body.appendChild(contextMenu);
 
+    // Add click handlers for menu items
+    contextMenu.querySelectorAll('.context-menu-item').forEach(item => {
+        item.addEventListener('click', () => {
+            const action = item.dataset.action;
+            switch(action) {
+                case 'open':
+                    if (file.type === 'directory') {
+                        loadFiles(file.path);
+                    } else {
+                        openFile(file);
+                    }
+                    break;
+                // Other actions can be added here
+            }
+            contextMenu.remove();
+        });
+    });
+
     // Close menu on click outside
-    document.addEventListener('click', function closeMenu() {
-        contextMenu.remove();
-        document.removeEventListener('click', closeMenu);
+    document.addEventListener('click', function closeMenu(e) {
+        if (!contextMenu.contains(e.target)) {
+            contextMenu.remove();
+            document.removeEventListener('click', closeMenu);
+        }
     });
 }
 
