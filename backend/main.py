@@ -69,30 +69,54 @@ def search_files():
     
     try:
         results = []
-        drive = path[0] + ":" if platform.system() == "Windows" else "/"
-        
-        # Search in cache if available
-        if drive in file_cache:
-            cached_files = file_cache[drive]
-            for item in cached_files:
-                if (item['path'].startswith(path) and 
-                    query in item['name'].lower()):
-                    name = item['name']
-                    query_pos = name.lower().find(query)
-                    
-                    item['highlightedName'] = [
-                        {"text": name[:query_pos], "highlight": False},
-                        {"text": name[query_pos:query_pos + len(query)], "highlight": True},
-                        {"text": name[query_pos + len(query):], "highlight": False}
-                    ]
-                    results.append(item)
-                    
-                    if len(results) >= 100:
-                        break
+        # Search in current directory and subdirectories
+        for root, dirs, files in os.walk(path):
+            # Skip hidden directories
+            dirs[:] = [d for d in dirs if not d.startswith('.')]
+            
+            # Search in directories first
+            for dirname in dirs:
+                if query in dirname.lower():
+                    full_path = os.path.join(root, dirname)
+                    try:
+                        results.append({
+                            "name": dirname,
+                            "path": full_path,
+                            "type": "directory",
+                            "size": 0,
+                            "modified": os.path.getmtime(full_path),
+                            "highlightedName": highlight_text(dirname, query)
+                        })
+                    except (PermissionError, OSError):
+                        continue
+
+            # Then search in files
+            for filename in files:
+                if query in filename.lower():
+                    full_path = os.path.join(root, filename)
+                    try:
+                        results.append({
+                            "name": filename,
+                            "path": full_path,
+                            "type": "file",
+                            "size": os.path.getsize(full_path),
+                            "modified": os.path.getmtime(full_path),
+                            "highlightedName": highlight_text(filename, query)
+                        })
+                    except (PermissionError, OSError):
+                        continue
+
+            # Limit results to first 100 matches
+            if len(results) >= 100:
+                break
+
+        # Sort results: directories first, then alphabetically
+        results.sort(key=lambda x: (x['type'] != 'directory', x['name'].lower()))
         
         return jsonify(results)
+        
     except Exception as e:
-        print(f"Search error: {e}")
+        print(f"Search error: {e}")  # Debug log
         return jsonify({"error": str(e)})
 
 @app.route('/api/initialize')
