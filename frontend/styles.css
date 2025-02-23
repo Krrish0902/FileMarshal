@@ -517,8 +517,9 @@ html, body {
     border: 1px solid #404040;
     border-radius: 4px;
     margin-top: 5px;
-    display: none;
+    min-width: 150px;
     z-index: 1000;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
 }
 
 .sort-option, .view-option {
@@ -529,6 +530,11 @@ html, body {
 
 .sort-option:hover, .view-option:hover {
     background: #2d2d2d;
+}
+
+.sort-option.active, .view-option.active {
+    background: #2c5282;
+    color: white;
 }
 
 /* List View Styles */
@@ -705,8 +711,8 @@ html, body {
 }
 
 .selection-controls {
-    background: #1a1a1a;
     padding: 10px 20px;
+    background: #1a1a1a;
     border-bottom: 1px solid #333;
     display: flex;
     justify-content: space-between;
@@ -740,6 +746,15 @@ html, body {
     background: #2d2d2d;
     color: #e0e0e0;
     border: 1px solid #404040;
+    padding: 8px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+#clearSelectionBtn:hover {
+    background: #363636;
+    border-color: #505050;
 }
 
 /* Folder Tree Styles */

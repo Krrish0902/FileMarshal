@@ -10,6 +10,7 @@ let isSelectionMode = false;
 let lastClickTime = 0;
 const doubleClickDelay = 300;
 let selectAllState = false;
+let lastSelectedFile = null;
 
 async function loadDrives() {
     try {
@@ -641,6 +642,12 @@ document.addEventListener('DOMContentLoaded', () => {
             loadFiles(currentPath);
         });
     });
+
+    // Initialize controls
+    initializeControls();
+    
+    // Clear selection button handler
+    document.getElementById('clearSelectionBtn')?.addEventListener('click', clearSelection);
 });
 
 async function organizeSelectedFiles() {
@@ -725,9 +732,22 @@ function updateSelectionControls() {
 // Add clear selection function if not already present
 function clearSelection() {
     selectedFiles.clear();
+    isSelectionMode = false;
+    selectAllState = false;
+    lastSelectedFile = null;
+    
     document.querySelectorAll('.file-item').forEach(item => {
         item.classList.remove('selected');
+        const checkbox = item.querySelector('.file-checkbox');
+        if (checkbox) checkbox.checked = false;
     });
+    
+    const selectAllBtn = document.getElementById('selectAllBtn');
+    if (selectAllBtn) {
+        selectAllBtn.textContent = '☐';
+        selectAllBtn.classList.remove('active');
+    }
+    
     updateSelectionControls();
 }
 
@@ -877,4 +897,97 @@ async function buildFolderTree(path) {
         console.error('Error building folder tree:', error);
         return null;
     }
+}
+
+function initializeControls() {
+    // Sort button handler
+    const sortBtn = document.getElementById('sortBtn');
+    const sortDropdown = document.querySelector('.sort-dropdown');
+    
+    sortBtn?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isHidden = sortDropdown.style.display === 'none';
+        
+        // Hide all dropdowns first
+        document.querySelectorAll('.sort-dropdown, .view-dropdown').forEach(dropdown => {
+            dropdown.style.display = 'none';
+        });
+        
+        // Show this dropdown if it was hidden
+        if (isHidden) {
+            sortDropdown.style.display = 'block';
+        }
+    });
+
+    // View button handler
+    const viewBtn = document.getElementById('viewBtn');
+    const viewDropdown = document.querySelector('.view-dropdown');
+    
+    viewBtn?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isHidden = viewDropdown.style.display === 'none';
+        
+        // Hide all dropdowns first
+        document.querySelectorAll('.sort-dropdown, .view-dropdown').forEach(dropdown => {
+            dropdown.style.display = 'none';
+        });
+        
+        // Show this dropdown if it was hidden
+        if (isHidden) {
+            viewDropdown.style.display = 'block';
+        }
+    });
+
+    // Sort options click handlers
+    document.querySelectorAll('.sort-option').forEach(option => {
+        option.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const field = option.dataset.sort;
+            
+            // Toggle direction if same field
+            currentSort.direction = currentSort.field === field ? 
+                (currentSort.direction === 'asc' ? 'desc' : 'asc') : 'asc';
+            currentSort.field = field;
+            
+            // Update UI
+            document.querySelectorAll('.sort-option').forEach(opt => {
+                opt.classList.remove('active', 'desc');
+            });
+            option.classList.add('active');
+            if (currentSort.direction === 'desc') {
+                option.classList.add('desc');
+            }
+            
+            // Hide dropdown and refresh view
+            sortDropdown.style.display = 'none';
+            const currentPath = document.querySelector('.current-path').textContent;
+            loadFiles(currentPath);
+        });
+    });
+
+    // View options click handlers
+    document.querySelectorAll('.view-option').forEach(option => {
+        option.addEventListener('click', (e) => {
+            e.stopPropagation();
+            currentView = option.dataset.view;
+            
+            // Update UI
+            document.querySelectorAll('.view-option').forEach(opt => {
+                opt.classList.remove('active');
+            });
+            option.classList.add('active');
+            
+            // Hide dropdown and refresh view
+            viewDropdown.style.display = 'none';
+            const currentPath = document.querySelector('.current-path').textContent;
+            loadFiles(currentPath);
+        });
+    });
+
+    // Close dropdowns when clicking outside
+    document.addEventListener('click', () => {
+        document.querySelectorAll('.sort-dropdown, .view-dropdown').forEach(dropdown => {
+            dropdown.style.display = 'none';
+        });
+    });
 }
