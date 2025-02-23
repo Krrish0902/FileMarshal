@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Organizer</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <nav class="sidebar">
+            <h2>File Marshal</h2>
+            <div id="drives-container">
+                <!-- Drives and folder tree will be added here dynamically -->
+            </div>
+           
+        </nav>
+        <main class="file-view">
+            <div class="navigation-bar">
+                <div class="nav-controls">
+                    <button id="backBtn" disabled>←</button>
+                    <button id="forwardBtn" disabled>→</button>
+                    <button id="selectAllBtn" title="Select All">☐</button>
+                    <button id="flattenBtn" title="Flatten Folders" style="display: none">📂</button>
+                    <span class="current-path"></span>
+                </div>
+                <div class="controls-group">
+                    <div class="sort-container">
+                        <button id="sortBtn">Sort By ▾</button>
+                        <div class="sort-dropdown" style="display: none;">
+                            <div class="sort-option" data-sort="name">Name</div>
+                            <div class="sort-option" data-sort="size">Size</div>
+                            <div class="sort-option" data-sort="modified">Date Modified</div>
+                            <div class="sort-option" data-sort="type">Type</div>
+                        </div>
+                    </div>
+                    <div class="view-container">
+                        <button id="viewBtn">View ▾</button>
+                        <div class="view-dropdown" style="display: none;">
+                            <div class="view-option" data-view="grid">Grid</div>
+                            <div class="view-option" data-view="list">List</div>
+                        </div>
+                    </div>
+                    <div class="search-container">
+                        <input type="text" id="searchInput" placeholder="Search files...">
+                        <button id="searchBtn">🔍</button>
+                    </div>
+                </div>
+            </div>
+            <h1>All Files</h1>
+            <div class="files"></div>
+        </main>
+    </div>
+    <script src="fileManager.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                console.log('Initializing dashboard...'); // Debug log
+                
+                // Build drive tree
+                await buildDriveTree();
+                
+                // Load first drive's contents
+                const drives = await loadDrives();
+                if (drives.length > 0) {
+                    await loadFiles(drives[0]);
+                } else {
+                    throw new Error('No drives available');
+                }
+                
+            } catch (error) {
+                console.error('Dashboard initialization error:', error);
+                displayError(`Failed to initialize: ${error.message}`);
+            }
+
+            // Add this to the DOMContentLoaded event listener in dashboard.html
+            document.querySelectorAll('.sidebar li').forEach(item => {
+                item.addEventListener('click', () => {
+                    const category = item.dataset.type;
+                    const currentPath = document.querySelector('.current-path').textContent;
+                    
+                    // Clean the path if it contains results text
+                    const cleanPath = currentPath.includes(' in ') ? 
+                        currentPath.split(' in ').pop() : currentPath;
+                        
+                    if (cleanPath) {
+                        // Visual feedback for selected category
+                        document.querySelectorAll('.sidebar li').forEach(li => {
+                            li.classList.remove('active');
+                        });
+                        item.classList.add('active');
+                        
+                        loadFilesByCategory(category, cleanPath);
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>

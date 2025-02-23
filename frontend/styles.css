@@ -1,0 +1,861 @@
+/* General */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Inter', sans-serif;
+}
+
+html, body {
+    height: 100%;
+    background: #121212;
+}
+
+/* Home Page */
+.home {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    color: white;
+    height: 100vh;
+}
+
+/* Background Image (CSS) */
+.home::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: url("https://source.unsplash.com/1600x900/?technology,files,dark") no-repeat center center/cover;
+    z-index: -1;
+    opacity: 0.6; /* Slight opacity for readability */
+}
+
+/* Fallback Background Image */
+.background-img {
+    position: absolute;
+    width: 100%;
+    height: 100vh;
+    object-fit: cover;
+    z-index: -1;
+    display: none; /* Hidden if CSS works */
+}
+
+/* Home Container */
+.home-container {
+    z-index: 2;
+    max-width: 600px;
+    padding: 20px;
+}
+
+/* Application Name with Typing Effect */
+.app-name {
+    font-size: 42px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    border-right: 3px solid;
+    width: max-content;
+    margin: 0 auto 10px auto;
+    white-space: nowrap;
+    overflow: hidden;
+    animation: 
+        typing 2s steps(11, end),
+        cursor .75s step-end 5,        /* Reduced from 8 to 5 blinks */
+        removeCursor 0s 1.5s forwards; /* Changed from 2s to 1.5s */
+}
+
+/* Typing Animation */
+@keyframes typing {
+    from { width: 0 }
+    to { width: 100% }
+}
+
+/* Cursor Animation */
+@keyframes cursor {
+    from, to { border-color: transparent }
+    50% { border-color: white }
+}
+
+/* Remove Cursor Animation */
+@keyframes removeCursor {
+    to {
+        border-right-color: transparent;
+    }
+}
+
+/* Description with fade-in effect */
+.app-description {
+    font-size: 18px;
+    font-weight: 300;
+    opacity: 0;
+    background: #121212;
+    padding: 10px 20px;
+    border-radius: 8px;
+    display: inline-block;
+    animation: fadeIn 1s ease-in forwards;
+    animation-delay: 2s;  /* Starts after app name typing */
+}
+
+/* Get Started Button with fade-in and slide-up */
+#getStarted {
+    margin-top: 20px;
+    padding: 12px 25px;
+    font-size: 18px;
+    font-weight: 500;
+    color: white; /* Set initial text color to white */
+    background: #000000;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.3s ease; /* Update transition to include all properties */
+    opacity: 0;
+    transform: translateY(20px);
+    animation: slideUp 1s ease forwards;
+    animation-delay: 3s;  /* Starts after description appears */
+}
+
+/* Animation Keyframes */
+@keyframes fadeIn {
+    from { 
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to { 
+        opacity: 0.85;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slideUp {
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Modify the hover effect to change text color */
+#getStarted:hover {
+    background: #ffffff;
+    color: #000000; /* Change text color to black on hover */
+    transform: scale(1.05) translateY(0);
+}
+
+/* Loading Page */
+.loading-page {
+    background: #121212;
+    color: white;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+}
+
+.loading-container {
+    text-align: center;
+}
+
+.icons {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.file-icon {
+    width: 40px;
+    animation: spin 2s linear infinite;
+}
+
+/* Update the loading page icon style to be more specific */
+.loading-container .file-icon {
+    width: 40px;
+    animation: spin 2s linear infinite;
+}
+
+.progress-bar {
+    width: 300px;
+    height: 10px;
+    background: #333;
+    border-radius: 5px;
+    overflow: hidden;
+}
+
+#progress {
+    height: 100%;
+    width: 0%;
+    background: #f6f6f6;
+}
+
+/* Sidebar */
+.container {
+    display: flex;
+    height: 100vh;
+}
+
+.sidebar {
+    width: 250px;
+    background: #1a1a1a;
+    padding: 20px;
+    color: #e0e0e0;
+    border-right: 1px solid #333;
+}
+
+.sidebar h2 {
+    font-size: 20px;
+    margin-bottom: 25px;
+    color: #fff;
+    font-weight: 500;
+}
+
+.sidebar ul {
+    list-style: none;
+    margin-top: 20px;
+}
+
+.sidebar li {
+    padding: 12px 15px;
+    cursor: pointer;
+    transition: all 0.2s;
+    border-radius: 6px;
+    margin-bottom: 4px;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.sidebar li.active {
+    background: #2d2d2d;
+    color: #fff;
+    font-weight: 500;
+}
+
+.sidebar li:hover {
+    background: #363636;
+}
+
+/* File View */
+.file-view {
+    flex: 1;
+    padding: 0;
+    color: #e0e0e0;
+    background: #121212;
+}
+
+.files {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 15px;
+    padding: 20px;
+}
+
+.drive-item {
+    padding: 12px 15px;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-bottom: 8px;
+    background: #2d2d2d;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+}
+
+.drive-item::before {
+    content: "💾";
+    font-size: 16px;
+}
+
+.drive-item:hover {
+    background: #363636;
+    transform: translateX(3px);
+}
+
+/* Update file item styles */
+.file-item {
+    background: #1a1a1a;
+    padding: 15px;
+    border-radius: 8px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: 1px solid #2d2d2d;
+    position: relative;
+    user-select: none;
+}
+
+.file-item:hover {
+    transform: translateY(-2px);
+    background: #242424;
+    border-color: #404040;
+}
+
+.file-item.selected {
+    background: #2d2d2d;
+    border-color: #505050;
+}
+
+.file-icon {
+    font-size: 32px;
+    margin-bottom: 10px;
+    opacity: 0.9;
+}
+
+/* Update the dashboard file icon style */
+.file-item .file-icon {
+    font-size: 32px;
+    margin-bottom: 10px;
+    opacity: 0.9;
+    animation: none; /* Explicitly remove any animation */
+}
+
+.file-name {
+    font-size: 13px;
+    color: #e0e0e0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    padding: 0 5px;
+}
+
+/* Add these styles */
+.file-name .highlight {
+    background-color: rgba(255, 215, 0, 0.3);
+    color: #fff;
+    padding: 0 2px;
+    border-radius: 2px;
+    font-weight: 500;
+}
+
+/* Navigation Bar */
+.navigation-bar {
+    display: flex;
+    align-items: center;
+    padding: 8px 15px;
+    background: #1a1a1a;
+    border-bottom: 1px solid #333;
+    gap: 20px;
+}
+
+.nav-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.controls-group {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-left: auto;
+}
+
+#selectAllBtn {
+    padding: 8px 12px;
+    background: #2d2d2d;
+    border: 1px solid #404040;
+    color: #e0e0e0;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+#selectAllBtn:hover {
+    background: #363636;
+}
+
+#selectAllBtn.active {
+    background: #2c5282;
+    border-color: #2b6cb0;
+}
+
+#flattenBtn {
+    padding: 8px 12px;
+    background: #2d2d2d;
+    border: 1px solid #404040;
+    color: #e0e0e0;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+#flattenBtn:hover {
+    background: #363636;
+    border-color: #505050;
+}
+
+.current-path {
+    padding: 0 10px;
+    color: #888;
+    font-size: 13px;
+    font-family: monospace;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 500px;
+}
+
+.nav-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.nav-right {
+    margin-left: auto;
+}
+
+/* Update existing styles */
+.search-container {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    position: relative;
+    min-width: 300px;
+}
+
+#searchInput {
+    padding: 10px 40px 10px 15px;
+    font-size: 14px;
+    background: #2d2d2d;
+    border: 1px solid #404040;
+    border-radius: 6px;
+    color: #e0e0e0;
+    width: 100%;
+    transition: all 0.2s;
+}
+
+#searchInput:focus {
+    outline: none;
+    border-color: #505050;
+    background: #333;
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.1);
+    width: 300px;
+}
+
+#searchBtn {
+    padding: 8px 12px;
+    font-size: 14px;
+    background: #333;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.2s;
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    padding: 5px;
+    background: none;
+    border: none;
+    color: #888;
+    cursor: pointer;
+}
+
+#searchBtn:hover {
+    background: #444;
+}
+
+.navigation-bar button {
+    padding: 8px 12px;
+    font-size: 14px;
+    background: #2d2d2d;
+    color: #e0e0e0;
+    border: 1px solid #404040;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.navigation-bar button:hover:not(:disabled) {
+    background: #363636;
+    border-color: #505050;
+}
+
+.navigation-bar button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.current-path {
+    margin-left: 15px;
+    color: #888;
+    font-size: 13px;
+    font-family: monospace;
+}
+
+.no-results {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 40px;
+    color: #888;
+    font-size: 14px;
+    background: #1a1a1a;
+    border-radius: 8px;
+    border: 1px solid #2d2d2d;
+    margin: 20px;
+}
+
+/* Keep the spin animation only for loading page */
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Sort and View Controls */
+.sort-container, .view-container {
+    position: relative;
+    margin-right: 15px;
+}
+
+#sortBtn, #viewBtn {
+    padding: 8px 15px;
+    background: #2d2d2d;
+    border: 1px solid #404040;
+    color: #e0e0e0;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.sort-dropdown, .view-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background: #1a1a1a;
+    border: 1px solid #404040;
+    border-radius: 4px;
+    margin-top: 5px;
+    min-width: 150px;
+    z-index: 1000;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+.sort-option, .view-option {
+    padding: 8px 15px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.sort-option:hover, .view-option:hover {
+    background: #2d2d2d;
+}
+
+.sort-option.active, .view-option.active {
+    background: #2c5282;
+    color: white;
+}
+
+/* List View Styles */
+.files.list-view {
+    display: block;
+    padding: 0;
+}
+
+.files.list-view .file-item {
+    display: grid;
+    grid-template-columns: auto 1fr auto auto auto;
+    align-items: center;
+    text-align: left;
+    padding: 10px 15px;
+    margin-bottom: 2px;
+    border-radius: 4px;
+}
+
+.files.list-view .file-icon {
+    margin: 0 10px 0 0;
+    font-size: 20px;
+}
+
+.files.list-view .file-details {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+    color: #888;
+    font-size: 12px;
+}
+
+/* Sort Indicators */
+.sort-option.active::after {
+    content: " ↓";
+    color: #888;
+}
+
+.sort-option.active.desc::after {
+    content: " ↑";
+}
+
+/* Context Menu */
+.context-menu {
+    position: fixed;
+    background: #1a1a1a;
+    border: 1px solid #404040;
+    border-radius: 4px;
+    padding: 5px 0;
+    min-width: 150px;
+    z-index: 1000;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+}
+
+.context-menu-item {
+    padding: 8px 15px;
+    cursor: pointer;
+    transition: background 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.context-menu-item:hover {
+    background: #2d2d2d;
+}
+
+/* Selection styles */
+.file-checkbox {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    z-index: 1;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.selection-mode .file-checkbox,
+.file-item:hover .file-checkbox,
+.file-item.selected .file-checkbox {
+    opacity: 1;
+}
+
+.selection-controls {
+    background: #1a1a1a;
+    padding: 15px 20px;
+    border-bottom: 1px solid #333;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    justify-content: space-between;
+    padding: 10px 20px;
+}
+
+.selection-controls span {
+    color: #888;
+    font-size: 14px;
+}
+
+.selection-controls button {
+    padding: 8px 15px;
+    font-size: 14px;
+    background: #2d2d2d;
+    color: #e0e0e0;
+    border: 1px solid #404040;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.selection-controls button:hover {
+    background: #363636;
+    border-color: #505050;
+}
+
+.selection-controls .selection-actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+#organizeBtn {
+    background: #2c5282;
+    border-color: #2b6cb0;
+}
+
+#organizeBtn:hover {
+    background: #2b6cb0;
+}
+
+.success-message {
+    background: #2f855a;
+    color: white;
+    padding: 15px 20px;
+    margin: 10px 20px;
+    border-radius: 4px;
+    text-align: center;
+    animation: fadeOut 3s forwards;
+}
+
+@keyframes fadeOut {
+    0%, 80% { opacity: 1; }
+    100% { opacity: 0; }
+}
+
+.select-all-checkbox {
+    margin-right: 10px;
+    cursor: pointer;
+}
+
+/* Update selection controls styles */
+.selection-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.selection-count {
+    color: #e0e0e0;
+    font-size: 13px;
+}
+
+/* Add these styles */
+.file-checkbox {
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.file-item.selected .file-checkbox,
+.file-item:hover .file-checkbox {
+    opacity: 1;
+}
+
+.selection-controls {
+    padding: 10px 20px;
+    background: #1a1a1a;
+    border-bottom: 1px solid #333;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.selection-count {
+    color: #e0e0e0;
+    font-size: 14px;
+}
+
+.selection-actions {
+    display: flex;
+    gap: 10px;
+}
+
+#organizeBtn, #clearSelectionBtn {
+    padding: 8px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+#organizeBtn {
+    background: #2c5282;
+    color: white;
+    border: none;
+}
+
+#clearSelectionBtn {
+    background: #2d2d2d;
+    color: #e0e0e0;
+    border: 1px solid #404040;
+    padding: 8px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+#clearSelectionBtn:hover {
+    background: #363636;
+    border-color: #505050;
+}
+
+/* Folder Tree Styles */
+.folder-tree {
+    margin-top: 15px;
+    font-size: 13px;
+}
+
+.tree-item {
+    margin: 2px 0;
+    padding-left: 15px;
+}
+
+.tree-toggle {
+    display: inline-block;
+    width: 20px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.tree-label {
+    cursor: pointer;
+    padding: 2px 5px;
+    border-radius: 3px;
+}
+
+.tree-label:hover {
+    background: #2d2d2d;
+}
+
+.tree-children {
+    margin-left: 15px;
+    border-left: 1px solid #333;
+    padding-left: 5px;
+}
+
+/* Drive and Folder Tree Styles */
+.drive-container {
+    margin-bottom: 10px;
+}
+
+.drive-header, .folder-header {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 6px 8px;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: background 0.2s;
+}
+
+.drive-header:hover, .folder-header:hover {
+    background: #2d2d2d;
+}
+
+.toggle-icon {
+    width: 16px;
+    text-align: center;
+    transition: transform 0.2s;
+}
+
+.folder-tree {
+    margin-left: 15px;
+    border-left: 1px solid #333;
+}
+
+.folder-children {
+    margin-left: 20px;
+    border-left: 1px solid #333;
+    padding-left: 10px;
+}
+
+.folder-item {
+    margin: 2px 0;
+}
+
+.drive-label, .folder-label {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Active state for selected folder */
+.folder-header.active {
+    background: #2d2d2d;
+    color: #fff;
+    font-weight: 500;
+}

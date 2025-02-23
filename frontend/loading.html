@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Loading...</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="loading-page">
+    <div class="loading-container">
+        <div class="icons">
+            <img src="https://raw.githubusercontent.com/iconic/open-iconic/master/svg/image.svg" class="file-icon">
+            <img src="https://raw.githubusercontent.com/iconic/open-iconic/master/svg/document.svg" class="file-icon">
+            <img src="https://raw.githubusercontent.com/iconic/open-iconic/master/svg/video.svg" class="file-icon">
+            <img src="https://raw.githubusercontent.com/iconic/open-iconic/master/svg/audio.svg" class="file-icon">
+        </div>
+        <div class="progress-bar">
+            <div id="progress"></div>
+        </div>
+        <p id="loading-text">Loading... 0%</p>
+    </div>
+
+    <script>
+        let progress = 0;
+        let loadingText = document.getElementById("loading-text");
+        let progressBar = document.getElementById("progress");
+
+        async function initializeApp() {
+            try {
+                const response = await fetch('http://localhost:5000/api/initialize');
+                if (!response.ok) throw new Error('Server not ready');
+
+                const data = await response.json();
+                if (data.error) throw new Error(data.error);
+
+                // Quick loading animation
+                let interval = setInterval(() => {
+                    progress += 20;  // Faster progress
+                    progressBar.style.width = progress + "%";
+                    loadingText.innerText = `Loading... ${progress}%`;
+
+                    if (progress >= 100) {
+                        clearInterval(interval);
+                        window.location.href = "dashboard.html";
+                    }
+                }, 100);  // Reduced interval time
+
+            } catch (error) {
+                console.error('Initialization error:', error);
+                loadingText.innerText = "Error loading files. Please restart the app.";
+            }
+        }
+
+        initializeApp();
+    </script>
+</body>
+</html>
