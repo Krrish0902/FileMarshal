@@ -364,6 +364,32 @@ def get_folder_tree():
     except Exception as e:
         return jsonify({"error": str(e)})
 
+@app.route('/api/open', methods=['POST'])
+def open_file():
+    try:
+        data = request.json
+        file_path = data.get('path')
+        
+        if not file_path or not os.path.exists(file_path):
+            return jsonify({"error": "Invalid file path"})
+
+        try:
+            # For Windows
+            if platform.system() == "Windows":
+                os.startfile(file_path)
+            # For macOS
+            elif platform.system() == "Darwin":
+                subprocess.call(('open', file_path))
+            # For Linux
+            else:
+                subprocess.call(('xdg-open', file_path))
+            return jsonify({"success": True})
+        except Exception as e:
+            return jsonify({"error": f"Failed to open file: {str(e)}"})
+            
+    except Exception as e:
+        return jsonify({"error": str(e)})
+
 def highlight_text(text, query):
     """Split text into parts to be highlighted"""
     lower_text = text.lower()

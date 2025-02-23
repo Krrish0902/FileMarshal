@@ -374,6 +374,21 @@ html, body {
     border-color: #2b6cb0;
 }
 
+#flattenBtn {
+    padding: 8px 12px;
+    background: #2d2d2d;
+    border: 1px solid #404040;
+    color: #e0e0e0;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+#flattenBtn:hover {
+    background: #363636;
+    border-color: #505050;
+}
+
 .current-path {
     padding: 0 10px;
     color: #888;
@@ -822,8 +837,9 @@ html, body {
 }
 
 .folder-children {
-    margin-left: 15px;
+    margin-left: 20px;
     border-left: 1px solid #333;
+    padding-left: 10px;
 }
 
 .folder-item {
@@ -841,4 +857,5 @@ html, body {
 .folder-header.active {
     background: #2d2d2d;
     color: #fff;
+    font-weight: 500;
 }

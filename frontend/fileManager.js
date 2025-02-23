@@ -42,6 +42,18 @@ async function loadDrives() {
     }
 }
 
+// Add new function to check if directory has subdirectories
+async function checkForSubdirectories(path) {
+    try {
+        const response = await fetch(`http://localhost:5000/api/files/${encodeURIComponent(path.replace(':', '|'))}`);
+        const data = await response.json();
+        return data.some(item => item.type === 'directory');
+    } catch (error) {
+        console.error('Error checking subdirectories:', error);
+        return false;
+    }
+}
+
 // Update the loadFiles function
 async function loadFiles(path, addToHistory = true) {
     try {
@@ -97,6 +109,16 @@ async function loadFiles(path, addToHistory = true) {
         if (selectAllBtn) {
             selectAllBtn.textContent = '☐';
             selectAllBtn.classList.remove('active');
+        }
+
+        // Check for subdirectories and show/hide flatten button
+        const hasSubdirs = await checkForSubdirectories(path);
+        const flattenBtn = document.getElementById('flattenBtn');
+        if (flattenBtn) {
+            flattenBtn.style.display = hasSubdirs ? 'block' : 'none';
+            if (hasSubdirs) {
+                flattenBtn.onclick = () => flattenFolders(path);
+            }
         }
         
     } catch (error) {
@@ -869,6 +891,7 @@ async function buildFolderTree(path) {
                 childrenDiv.style.display = 'none';
                 itemDiv.appendChild(childrenDiv);
 
+                // Update click handler to only toggle tree
                 header.addEventListener('click', async (e) => {
                     e.stopPropagation();
                     const toggleIcon = header.querySelector('.toggle-icon');
@@ -883,10 +906,20 @@ async function buildFolderTree(path) {
 
                     toggleIcon.textContent = isExpanded ? '▶' : '▼';
                     childrenDiv.style.display = isExpanded ? 'none' : 'block';
+                    
+                    // Add active state to clicked folder
+                    document.querySelectorAll('.folder-header').forEach(h => h.classList.remove('active'));
+                    header.classList.add('active');
+                    
+                    // Load files in main view
                     loadFiles(item.path);
                 });
             } else {
-                header.addEventListener('click', () => loadFiles(item.path));
+                header.addEventListener('click', () => {
+                    document.querySelectorAll('.folder-header').forEach(h => h.classList.remove('active'));
+                    header.classList.add('active');
+                    loadFiles(item.path);
+                });
             }
 
             fragment.appendChild(itemDiv);
@@ -896,6 +929,43 @@ async function buildFolderTree(path) {
     } catch (error) {
         console.error('Error building folder tree:', error);
         return null;
+    }
+}
+
+// Add flatten folders functionality
+async function flattenFolders(path) {
+    try {
+        const response = await fetch(`http://localhost:5000/api/files/${encodeURIComponent(path.replace(':', '|'))}`);
+        const data = await response.json();
+        
+        // Get all files from subdirectories
+        const allFiles = [];
+        const processDirectory = async (dirPath) => {
+            const resp = await fetch(`http://localhost:5000/api/files/${encodeURIComponent(dirPath.replace(':', '|'))}`);
+            const items = await resp.json();
+            
+            for (const item of items) {
+                if (item.type === 'directory') {
+                    await processDirectory(item.path);
+                } else {
+                    allFiles.push(item);
+                }
+            }
+        };
+        
+        for (const item of data) {
+            if (item.type === 'directory') {
+                await processDirectory(item.path);
+            } else {
+                allFiles.push(item);
+            }
+        }
+        
+        displayFiles(allFiles);
+        document.querySelector('h1').textContent = `Flattened View (${allFiles.length} items)`;
+    } catch (error) {
+        console.error('Error flattening folders:', error);
+        displayError('Failed to flatten folders');
     }
 }
 
