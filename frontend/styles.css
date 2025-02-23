@@ -693,3 +693,52 @@ html, body {
     color: #e0e0e0;
     font-size: 13px;
 }
+
+/* Add these styles */
+.file-checkbox {
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.file-item.selected .file-checkbox,
+.file-item:hover .file-checkbox {
+    opacity: 1;
+}
+
+.selection-controls {
+    background: #1a1a1a;
+    padding: 10px 20px;
+    border-bottom: 1px solid #333;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.selection-count {
+    color: #e0e0e0;
+    font-size: 14px;
+}
+
+.selection-actions {
+    display: flex;
+    gap: 10px;
+}
+
+#organizeBtn, #clearSelectionBtn {
+    padding: 8px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+#organizeBtn {
+    background: #2c5282;
+    color: white;
+    border: none;
+}
+
+#clearSelectionBtn {
+    background: #2d2d2d;
+    color: #e0e0e0;
+    border: 1px solid #404040;
+}

@@ -205,12 +205,19 @@ function goForward() {
     }
 }
 
+// Update navigation functions
 function updateNavigationButtons() {
     const backBtn = document.getElementById('backBtn');
     const forwardBtn = document.getElementById('forwardBtn');
     
-    backBtn.disabled = currentIndex <= 0;
-    forwardBtn.disabled = currentIndex >= navigationHistory.length - 1;
+    if (backBtn && forwardBtn) {
+        backBtn.disabled = currentIndex <= 0;
+        forwardBtn.disabled = currentIndex >= navigationHistory.length - 1;
+        
+        // Add visual feedback
+        backBtn.style.opacity = backBtn.disabled ? '0.5' : '1';
+        forwardBtn.style.opacity = forwardBtn.disabled ? '0.5' : '1';
+    }
 }
 
 function sortFiles(files, field, direction) {
@@ -236,6 +243,7 @@ function sortFiles(files, field, direction) {
     });
 }
 
+// Update the existing displayFiles function
 function displayFiles(files) {
     const filesContainer = document.querySelector('.files');
     filesContainer.innerHTML = '';
@@ -261,6 +269,11 @@ function displayFiles(files) {
         checkbox.type = 'checkbox';
         checkbox.className = 'file-checkbox';
         checkbox.checked = selectedFiles.has(file.path);
+        
+        // Show checkbox when file is selected
+        if (selectedFiles.has(file.path)) {
+            checkbox.style.opacity = '1';
+        }
 
         // Handle click events
         fileElement.addEventListener('click', (e) => {
@@ -540,6 +553,10 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     document.getElementById('selectAllBtn').addEventListener('click', handleSelectAll);
+
+    // Add these event listeners in the DOMContentLoaded event
+    document.getElementById('backBtn').addEventListener('click', goBack);
+    document.getElementById('forwardBtn').addEventListener('click', goForward);
 });
 
 async function organizeSelectedFiles() {
@@ -628,4 +645,91 @@ function clearSelection() {
         item.classList.remove('selected');
     });
     updateSelectionControls();
+}
+
+// Add these functions
+function handleFileSelection(file, ctrlKey, shiftKey) {
+    const fileElement = document.querySelector(`[data-path="${file.path}"]`);
+    if (!fileElement) return;
+
+    if (!isSelectionMode) {
+        isSelectionMode = true;
+        document.querySelector('.files').classList.add('selection-mode');
+    }
+
+    if (shiftKey && lastSelectedFile) {
+        // Handle range selection
+        const files = Array.from(document.querySelectorAll('.file-item'));
+        const startIndex = files.findIndex(el => el.dataset.path === lastSelectedFile);
+        const endIndex = files.findIndex(el => el.dataset.path === file.path);
+        const [min, max] = [Math.min(startIndex, endIndex), Math.max(startIndex, endIndex)];
+        
+        files.slice(min, max + 1).forEach(fileEl => {
+            fileEl.classList.add('selected');
+            fileEl.querySelector('.file-checkbox').checked = true;
+            selectedFiles.add(fileEl.dataset.path);
+        });
+    } else if (ctrlKey) {
+        // Toggle selection
+        fileElement.classList.toggle('selected');
+        fileElement.querySelector('.file-checkbox').checked = !fileElement.querySelector('.file-checkbox').checked;
+        if (selectedFiles.has(file.path)) {
+            selectedFiles.delete(file.path);
+        } else {
+            selectedFiles.add(file.path);
+        }
+    } else {
+        // Single selection
+        document.querySelectorAll('.file-item').forEach(item => {
+            item.classList.remove('selected');
+            item.querySelector('.file-checkbox').checked = false;
+        });
+        selectedFiles.clear();
+        fileElement.classList.add('selected');
+        fileElement.querySelector('.file-checkbox').checked = true;
+        selectedFiles.add(file.path);
+    }
+
+    lastSelectedFile = file.path;
+    updateSelectionControls();
+}
+
+function handleSelectAll() {
+    selectAllState = !selectAllState;
+    const selectAllBtn = document.getElementById('selectAllBtn');
+    selectAllBtn.textContent = selectAllState ? '☑' : '☐';
+    selectAllBtn.classList.toggle('active', selectAllState);
+
+    document.querySelectorAll('.file-item').forEach(item => {
+        item.classList.toggle('selected', selectAllState);
+        item.querySelector('.file-checkbox').checked = selectAllState;
+        if (selectAllState) {
+            selectedFiles.add(item.dataset.path);
+        } else {
+            selectedFiles.delete(item.dataset.path);
+        }
+    });
+
+    updateSelectionControls();
+}
+
+// Add file opening function
+async function openFile(file) {
+    try {
+        const response = await fetch('http://localhost:5000/api/open', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ path: file.path })
+        });
+
+        const result = await response.json();
+        if (result.error) {
+            throw new Error(result.error);
+        }
+    } catch (error) {
+        console.error('Error opening file:', error);
+        displayError(`Failed to open file: ${error.message}`);
+    }
 }
