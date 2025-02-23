@@ -4,11 +4,9 @@ import ctypes
 import sys
 import json
 from datetime import datetime
-
 class BackupManager:
     def __init__(self):
         self.backup_history = {}
-        # Create backups directory if it doesn't exist
         self.backup_dir = os.path.join(os.path.dirname(__file__), 'backups')
         os.makedirs(self.backup_dir, exist_ok=True)
         self.history_file = os.path.join(self.backup_dir, "backup_history.json")
@@ -65,11 +63,11 @@ class BackupManager:
                 "removed_dirs": []
             }
 
-            # Keep track of files already in target directory
-            existing_files = set()
+            # Track files that actually need renaming due to conflicts
+            existing_files = {}  # Use a dict to track both existence and full paths
             for item in os.listdir(source_dir):
                 if os.path.isfile(os.path.join(source_dir, item)):
-                    existing_files.add(item)
+                    existing_files[item] = os.path.join(source_dir, item)
 
             def process_directory(current_dir, target_dir):
                 moved = []
@@ -77,9 +75,7 @@ class BackupManager:
                 for item in os.listdir(current_dir):
                     item_path = os.path.join(current_dir, item)
                     if os.path.isdir(item_path):
-                        # Recursively process subdirectory
                         moved.extend(process_directory(item_path, target_dir))
-                        # Record directory for removal
                         operation_record["removed_dirs"].append(item_path)
 
                 # Move all files in current directory
@@ -88,15 +84,20 @@ class BackupManager:
                     if os.path.isfile(source_path):
                         target_path = os.path.join(target_dir, item)
                         
-                        # Only add number suffix if file already exists in target
-                        if item in existing_files:
+                        # Only rename if there's actually a conflict
+                        if item in existing_files and source_path != existing_files[item]:
                             base, ext = os.path.splitext(item)
-                            counter = 0
-                            while os.path.exists(os.path.join(target_dir, f"{base}{' (' + str(counter) + ')' if counter > 0 else ''}{ext}")):
+                            counter = 1
+                            while True:
+                                new_name = f"{base} ({counter}){ext}" if counter > 0 else f"{base}{ext}"
+                                potential_path = os.path.join(target_dir, new_name)
+                                if not os.path.exists(potential_path):
+                                    target_path = potential_path
+                                    break
                                 counter += 1
-                            target_path = os.path.join(target_dir, f"{base}{' (' + str(counter) + ')' if counter > 0 else ''}{ext}")
-                        else:
-                            existing_files.add(item)
+                        
+                        # Update existing files tracking
+                        existing_files[os.path.basename(target_path)] = target_path
 
                         # Move file and record operation
                         shutil.move(source_path, target_path)
