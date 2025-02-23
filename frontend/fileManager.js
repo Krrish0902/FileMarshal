@@ -848,51 +848,51 @@ async function buildFolderTree(path) {
         const response = await fetch(`http://localhost:5000/api/folders/tree?path=${encodeURIComponent(path)}`);
         const data = await response.json();
         
-        const treeContainer = document.createElement('div');
-        treeContainer.className = 'folder-tree';
+        const fragment = document.createDocumentFragment();
         
-        function createTreeItem(item) {
+        for (const item of data) {
             const itemDiv = document.createElement('div');
-            itemDiv.className = 'tree-item';
+            itemDiv.className = 'folder-item';
             
-            const toggle = document.createElement('span');
-            toggle.className = 'tree-toggle';
-            toggle.textContent = item.children ? '▶' : ' ';
-            
-            const label = document.createElement('span');
-            label.className = 'tree-label';
-            label.textContent = item.name;
-            
-            itemDiv.appendChild(toggle);
-            itemDiv.appendChild(label);
-            
+            const header = document.createElement('div');
+            header.className = 'folder-header';
+            header.innerHTML = `
+                <span class="toggle-icon">${item.children ? '▶' : '└'}</span>
+                <span class="folder-icon">📁</span>
+                <span class="folder-label">${item.name}</span>
+            `;
+            itemDiv.appendChild(header);
+
             if (item.children) {
-                const children = document.createElement('div');
-                children.className = 'tree-children';
-                children.style.display = 'none';
-                
-                item.children.forEach(child => {
-                    children.appendChild(createTreeItem(child));
+                const childrenDiv = document.createElement('div');
+                childrenDiv.className = 'folder-children';
+                childrenDiv.style.display = 'none';
+                itemDiv.appendChild(childrenDiv);
+
+                header.addEventListener('click', async (e) => {
+                    e.stopPropagation();
+                    const toggleIcon = header.querySelector('.toggle-icon');
+                    const isExpanded = toggleIcon.textContent === '▼';
+                    
+                    if (!isExpanded && !childrenDiv.hasChildNodes()) {
+                        const childTree = await buildFolderTree(item.path);
+                        if (childTree) {
+                            childrenDiv.appendChild(childTree);
+                        }
+                    }
+
+                    toggleIcon.textContent = isExpanded ? '▶' : '▼';
+                    childrenDiv.style.display = isExpanded ? 'none' : 'block';
+                    loadFiles(item.path);
                 });
-                
-                toggle.addEventListener('click', () => {
-                    toggle.textContent = toggle.textContent === '▶' ? '▼' : '▶';
-                    children.style.display = children.style.display === 'none' ? 'block' : 'none';
-                });
-                
-                itemDiv.appendChild(children);
+            } else {
+                header.addEventListener('click', () => loadFiles(item.path));
             }
-            
-            label.addEventListener('click', () => loadFiles(item.path));
-            
-            return itemDiv;
+
+            fragment.appendChild(itemDiv);
         }
         
-        data.forEach(item => {
-            treeContainer.appendChild(createTreeItem(item));
-        });
-        
-        return treeContainer;
+        return fragment;
     } catch (error) {
         console.error('Error building folder tree:', error);
         return null;
@@ -990,4 +990,60 @@ function initializeControls() {
             dropdown.style.display = 'none';
         });
     });
+}
+
+// Add this function to build drive and folder tree
+async function buildDriveTree() {
+    try {
+        const drives = await loadDrives();
+        const drivesContainer = document.getElementById('drives-container');
+        drivesContainer.innerHTML = '';
+
+        for (const drive of drives) {
+            const driveContainer = document.createElement('div');
+            driveContainer.className = 'drive-container';
+
+            // Create drive header
+            const driveHeader = document.createElement('div');
+            driveHeader.className = 'drive-header';
+            driveHeader.innerHTML = `
+                <span class="toggle-icon">▶</span>
+                <span class="drive-icon">💾</span>
+                <span class="drive-label">${drive}</span>
+            `;
+            driveContainer.appendChild(driveHeader);
+
+            // Create folder tree container
+            const treeContainer = document.createElement('div');
+            treeContainer.className = 'folder-tree';
+            treeContainer.style.display = 'none';
+            driveContainer.appendChild(treeContainer);
+
+            // Add click handlers
+            driveHeader.addEventListener('click', async (e) => {
+                const toggleIcon = driveHeader.querySelector('.toggle-icon');
+                const isExpanded = toggleIcon.textContent === '▼';
+
+                // Toggle folder tree
+                if (!isExpanded && !treeContainer.hasChildNodes()) {
+                    // Load folder tree if not loaded
+                    const tree = await buildFolderTree(drive);
+                    if (tree) {
+                        treeContainer.appendChild(tree);
+                    }
+                }
+
+                toggleIcon.textContent = isExpanded ? '▶' : '▼';
+                treeContainer.style.display = isExpanded ? 'none' : 'block';
+
+                // Load drive contents
+                loadFiles(drive);
+            });
+
+            drivesContainer.appendChild(driveContainer);
+        }
+    } catch (error) {
+        console.error('Error building drive tree:', error);
+        displayError('Failed to build drive tree');
+    }
 }

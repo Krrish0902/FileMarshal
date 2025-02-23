@@ -790,3 +790,55 @@ html, body {
     border-left: 1px solid #333;
     padding-left: 5px;
 }
+
+/* Drive and Folder Tree Styles */
+.drive-container {
+    margin-bottom: 10px;
+}
+
+.drive-header, .folder-header {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 6px 8px;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: background 0.2s;
+}
+
+.drive-header:hover, .folder-header:hover {
+    background: #2d2d2d;
+}
+
+.toggle-icon {
+    width: 16px;
+    text-align: center;
+    transition: transform 0.2s;
+}
+
+.folder-tree {
+    margin-left: 15px;
+    border-left: 1px solid #333;
+}
+
+.folder-children {
+    margin-left: 15px;
+    border-left: 1px solid #333;
+}
+
+.folder-item {
+    margin: 2px 0;
+}
+
+.drive-label, .folder-label {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Active state for selected folder */
+.folder-header.active {
+    background: #2d2d2d;
+    color: #fff;
+}

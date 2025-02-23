@@ -10,16 +10,10 @@
     <div class="container">
         <nav class="sidebar">
             <h2>File Marshal</h2>
-            <div id="drives-list"></div>
-            <ul>
-                <li data-type="all">📁 All Files</li>
-                <li data-type="image">🖼️ Images</li>
-                <li data-type="video">🎥 Videos</li>
-                <li data-type="document">📄 Documents</li>
-                <li data-type="audio">🎵 Audio</li>
-                <li data-type="archive">📦 Archives</li>
-                <li data-type="other">📂 Others</li>
-            </ul>
+            <div id="drives-container">
+                <!-- Drives and folder tree will be added here dynamically -->
+            </div>
+           
         </nav>
         <main class="file-view">
             <div class="navigation-bar">
@@ -62,61 +56,15 @@
             try {
                 console.log('Initializing dashboard...'); // Debug log
                 
-                // Ensure required elements exist
-                const requiredElements = ['drives-list', 'files'];
-                for (const id of requiredElements) {
-                    if (!document.getElementById(id)) {
-                        throw new Error(`Required element '${id}' not found`);
-                    }
-                }
+                // Build drive tree
+                await buildDriveTree();
                 
-                // Load drives
-                const drives = await loadDrives();
-                console.log('Available drives:', drives); // Debug log
-                
-                const drivesList = document.getElementById('drives-list');
-                drivesList.innerHTML = '';
-                
-                // Add drives to sidebar
-                drives.forEach(drive => {
-                    const driveElement = document.createElement('div');
-                    driveElement.className = 'drive-item';
-                    driveElement.textContent = drive;
-                    driveElement.addEventListener('click', () => {
-                        console.log(`Loading drive: ${drive}`); // Debug log
-                        loadFiles(drive);
-                    });
-                    drivesList.appendChild(driveElement);
-                });
-
                 // Load first drive's contents
+                const drives = await loadDrives();
                 if (drives.length > 0) {
-                    console.log(`Loading initial drive: ${drives[0]}`); // Debug log
                     await loadFiles(drives[0]);
                 } else {
                     throw new Error('No drives available');
-                }
-
-                // Build folder tree for each drive
-                for (const drive of drives) {
-                    const treeContainer = await buildFolderTree(drive);
-                    if (treeContainer) {
-                        drivesList.appendChild(treeContainer);
-                    }
-                }
-
-                // Remove categories that don't exist in the system
-                const sidebar = document.querySelector('.sidebar ul');
-                const categories = ['image', 'video', 'document', 'audio', 'archive'];
-                for (const category of categories) {
-                    const response = await fetch(`http://localhost:5000/api/files/category/${category}?path=${drives[0]}`);
-                    const files = await response.json();
-                    if (!files || files.length === 0) {
-                        const categoryItem = sidebar.querySelector(`[data-type="${category}"]`);
-                        if (categoryItem) {
-                            categoryItem.remove();
-                        }
-                    }
                 }
                 
             } catch (error) {
