@@ -864,7 +864,7 @@ async function openFile(file) {
     }
 }
 
-// Add new function to build folder tree
+// Update the buildFolderTree function click handler
 async function buildFolderTree(path) {
     try {
         const response = await fetch(`http://localhost:5000/api/folders/tree?path=${encodeURIComponent(path)}`);
@@ -891,10 +891,13 @@ async function buildFolderTree(path) {
                 childrenDiv.style.display = 'none';
                 itemDiv.appendChild(childrenDiv);
 
-                // Update click handler to only toggle tree
-                header.addEventListener('click', async (e) => {
+                // Split click handlers for toggle and folder label
+                const toggleIcon = header.querySelector('.toggle-icon');
+                const folderLabel = header.querySelector('.folder-label');
+
+                // Toggle icon only expands/collapses the tree
+                toggleIcon.addEventListener('click', async (e) => {
                     e.stopPropagation();
-                    const toggleIcon = header.querySelector('.toggle-icon');
                     const isExpanded = toggleIcon.textContent === '▼';
                     
                     if (!isExpanded && !childrenDiv.hasChildNodes()) {
@@ -906,16 +909,24 @@ async function buildFolderTree(path) {
 
                     toggleIcon.textContent = isExpanded ? '▶' : '▼';
                     childrenDiv.style.display = isExpanded ? 'none' : 'block';
-                    
-                    // Add active state to clicked folder
+                });
+
+                // Folder label click loads the contents
+                folderLabel.addEventListener('click', (e) => {
+                    e.stopPropagation();
                     document.querySelectorAll('.folder-header').forEach(h => h.classList.remove('active'));
                     header.classList.add('active');
-                    
-                    // Load files in main view
                     loadFiles(item.path);
                 });
+
+                // Prevent header click from triggering both actions
+                header.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                });
             } else {
-                header.addEventListener('click', () => {
+                // For folders without children, whole header loads contents
+                header.addEventListener('click', (e) => {
+                    e.stopPropagation();
                     document.querySelectorAll('.folder-header').forEach(h => h.classList.remove('active'));
                     header.classList.add('active');
                     loadFiles(item.path);
