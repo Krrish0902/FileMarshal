@@ -518,8 +518,7 @@ html, body {
     border-radius: 4px;
     margin-top: 5px;
     display: none;
-    z-index: 100;
-    min-width: 150px;
+    z-index: 1000;
 }
 
 .sort-option, .view-option {
@@ -741,4 +740,38 @@ html, body {
     background: #2d2d2d;
     color: #e0e0e0;
     border: 1px solid #404040;
+}
+
+/* Folder Tree Styles */
+.folder-tree {
+    margin-top: 15px;
+    font-size: 13px;
+}
+
+.tree-item {
+    margin: 2px 0;
+    padding-left: 15px;
+}
+
+.tree-toggle {
+    display: inline-block;
+    width: 20px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.tree-label {
+    cursor: pointer;
+    padding: 2px 5px;
+    border-radius: 3px;
+}
+
+.tree-label:hover {
+    background: #2d2d2d;
+}
+
+.tree-children {
+    margin-left: 15px;
+    border-left: 1px solid #333;
+    padding-left: 5px;
 }

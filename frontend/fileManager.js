@@ -87,6 +87,16 @@ async function loadFiles(path, addToHistory = true) {
         
         // Update navigation buttons after successful load
         updateNavigationButtons();
+
+        // Reset selection state when changing directories
+        selectedFiles.clear();
+        isSelectionMode = false;
+        selectAllState = false;
+        const selectAllBtn = document.getElementById('selectAllBtn');
+        if (selectAllBtn) {
+            selectAllBtn.textContent = '☐';
+            selectAllBtn.classList.remove('active');
+        }
         
     } catch (error) {
         console.error('Error loading files:', error);
@@ -275,22 +285,32 @@ function displayFiles(files) {
             checkbox.style.opacity = '1';
         }
 
-        // Handle click events
+        // Separate click and double-click handlers
+        let clickTimer = null;
         fileElement.addEventListener('click', (e) => {
-            const currentTime = new Date().getTime();
-            const isDoubleClick = currentTime - lastClickTime < doubleClickDelay;
-            lastClickTime = currentTime;
+            // Prevent event bubbling if clicking checkbox
+            if (e.target.classList.contains('file-checkbox')) {
+                e.stopPropagation();
+                handleFileSelection(file, e.ctrlKey, e.shiftKey);
+                return;
+            }
 
-            if (isDoubleClick) {
+            // Handle single/double click
+            if (clickTimer === null) {
+                clickTimer = setTimeout(() => {
+                    clickTimer = null;
+                    // Single click - select item
+                    handleFileSelection(file, e.ctrlKey, e.shiftKey);
+                }, 200);
+            } else {
+                clearTimeout(clickTimer);
+                clickTimer = null;
                 // Double click - open file/folder
                 if (file.type === 'directory') {
                     loadFiles(file.path);
                 } else {
                     openFile(file);
                 }
-            } else {
-                // Single click - select item
-                handleFileSelection(file, e.ctrlKey, e.shiftKey);
             }
         });
 
@@ -557,6 +577,70 @@ document.addEventListener('DOMContentLoaded', () => {
     // Add these event listeners in the DOMContentLoaded event
     document.getElementById('backBtn').addEventListener('click', goBack);
     document.getElementById('forwardBtn').addEventListener('click', goForward);
+
+    // Update sort button handler
+    document.getElementById('sortBtn').addEventListener('click', function(e) {
+        e.stopPropagation();
+        const dropdown = document.querySelector('.sort-dropdown');
+        dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
+        // Hide view dropdown
+        document.querySelector('.view-dropdown').style.display = 'none';
+    });
+
+    // Update view button handler
+    document.getElementById('viewBtn').addEventListener('click', function(e) {
+        e.stopPropagation();
+        const dropdown = document.querySelector('.view-dropdown');
+        dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
+        // Hide sort dropdown
+        document.querySelector('.sort-dropdown').style.display = 'none';
+    });
+
+    // Close dropdowns when clicking outside
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('.sort-container') && !e.target.closest('.view-container')) {
+            document.querySelector('.sort-dropdown').style.display = 'none';
+            document.querySelector('.view-dropdown').style.display = 'none';
+        }
+    });
+
+    // Update sort options click handler
+    document.querySelectorAll('.sort-option').forEach(option => {
+        option.addEventListener('click', function() {
+            const field = this.dataset.sort;
+            currentSort.direction = currentSort.field === field ? 
+                (currentSort.direction === 'asc' ? 'desc' : 'asc') : 'asc';
+            currentSort.field = field;
+            
+            // Update active sort option
+            document.querySelectorAll('.sort-option').forEach(opt => {
+                opt.classList.remove('active', 'desc');
+            });
+            this.classList.add('active');
+            if (currentSort.direction === 'desc') {
+                this.classList.add('desc');
+            }
+            
+            // Hide dropdown
+            document.querySelector('.sort-dropdown').style.display = 'none';
+            
+            // Refresh current view
+            const currentPath = document.querySelector('.current-path').textContent;
+            loadFiles(currentPath);
+        });
+    });
+
+    // Update view options click handler
+    document.querySelectorAll('.view-option').forEach(option => {
+        option.addEventListener('click', function() {
+            currentView = this.dataset.view;
+            // Hide dropdown
+            document.querySelector('.view-dropdown').style.display = 'none';
+            
+            const currentPath = document.querySelector('.current-path').textContent;
+            loadFiles(currentPath);
+        });
+    });
 });
 
 async function organizeSelectedFiles() {
@@ -657,6 +741,8 @@ function handleFileSelection(file, ctrlKey, shiftKey) {
         document.querySelector('.files').classList.add('selection-mode');
     }
 
+    const checkbox = fileElement.querySelector('.file-checkbox');
+
     if (shiftKey && lastSelectedFile) {
         // Handle range selection
         const files = Array.from(document.querySelectorAll('.file-item'));
@@ -672,21 +758,23 @@ function handleFileSelection(file, ctrlKey, shiftKey) {
     } else if (ctrlKey) {
         // Toggle selection
         fileElement.classList.toggle('selected');
-        fileElement.querySelector('.file-checkbox').checked = !fileElement.querySelector('.file-checkbox').checked;
+        checkbox.checked = !checkbox.checked;
         if (selectedFiles.has(file.path)) {
             selectedFiles.delete(file.path);
         } else {
             selectedFiles.add(file.path);
         }
     } else {
-        // Single selection
-        document.querySelectorAll('.file-item').forEach(item => {
-            item.classList.remove('selected');
-            item.querySelector('.file-checkbox').checked = false;
-        });
-        selectedFiles.clear();
+        // Single selection - clear others unless clicking checkbox
+        if (!event.target.classList.contains('file-checkbox')) {
+            document.querySelectorAll('.file-item').forEach(item => {
+                item.classList.remove('selected');
+                item.querySelector('.file-checkbox').checked = false;
+            });
+            selectedFiles.clear();
+        }
         fileElement.classList.add('selected');
-        fileElement.querySelector('.file-checkbox').checked = true;
+        checkbox.checked = true;
         selectedFiles.add(file.path);
     }
 
@@ -731,5 +819,62 @@ async function openFile(file) {
     } catch (error) {
         console.error('Error opening file:', error);
         displayError(`Failed to open file: ${error.message}`);
+    }
+}
+
+// Add new function to build folder tree
+async function buildFolderTree(path) {
+    try {
+        const response = await fetch(`http://localhost:5000/api/folders/tree?path=${encodeURIComponent(path)}`);
+        const data = await response.json();
+        
+        const treeContainer = document.createElement('div');
+        treeContainer.className = 'folder-tree';
+        
+        function createTreeItem(item) {
+            const itemDiv = document.createElement('div');
+            itemDiv.className = 'tree-item';
+            
+            const toggle = document.createElement('span');
+            toggle.className = 'tree-toggle';
+            toggle.textContent = item.children ? '▶' : ' ';
+            
+            const label = document.createElement('span');
+            label.className = 'tree-label';
+            label.textContent = item.name;
+            
+            itemDiv.appendChild(toggle);
+            itemDiv.appendChild(label);
+            
+            if (item.children) {
+                const children = document.createElement('div');
+                children.className = 'tree-children';
+                children.style.display = 'none';
+                
+                item.children.forEach(child => {
+                    children.appendChild(createTreeItem(child));
+                });
+                
+                toggle.addEventListener('click', () => {
+                    toggle.textContent = toggle.textContent === '▶' ? '▼' : '▶';
+                    children.style.display = children.style.display === 'none' ? 'block' : 'none';
+                });
+                
+                itemDiv.appendChild(children);
+            }
+            
+            label.addEventListener('click', () => loadFiles(item.path));
+            
+            return itemDiv;
+        }
+        
+        data.forEach(item => {
+            treeContainer.appendChild(createTreeItem(item));
+        });
+        
+        return treeContainer;
+    } catch (error) {
+        console.error('Error building folder tree:', error);
+        return null;
     }
 }

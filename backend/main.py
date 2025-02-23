@@ -332,6 +332,38 @@ def organize_files():
     except Exception as e:
         return jsonify({"error": str(e)})
 
+@app.route('/api/folders/tree')
+def get_folder_tree():
+    try:
+        path = request.args.get('path', '')
+        if not path:
+            return jsonify([])
+            
+        def scan_folder(current_path, depth=0):
+            if depth > 3:  # Limit depth to prevent too deep scanning
+                return None
+                
+            try:
+                items = []
+                with os.scandir(current_path) as entries:
+                    for entry in entries:
+                        if entry.is_dir() and not entry.name.startswith('.'):
+                            children = scan_folder(entry.path, depth + 1)
+                            items.append({
+                                "name": entry.name,
+                                "path": entry.path,
+                                "children": children
+                            })
+                return sorted(items, key=lambda x: x['name'].lower())
+            except (PermissionError, OSError):
+                return None
+                
+        tree = scan_folder(path)
+        return jsonify(tree or [])
+        
+    except Exception as e:
+        return jsonify({"error": str(e)})
+
 def highlight_text(text, query):
     """Split text into parts to be highlighted"""
     lower_text = text.lower()
