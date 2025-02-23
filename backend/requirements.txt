@@ -2,3 +2,4 @@ flask==3.0.2
 flask-cors==4.0.0
 tika==2.6.0
 python-magic-bin==0.4.14
+watchdog==3.0.0

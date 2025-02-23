@@ -3,26 +3,32 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>File Marshal - Home</title>
+    <title>File Marshal</title>
     <link rel="stylesheet" href="styles.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
 </head>
-<body class="home">
-    <!-- Background Image (Hidden if CSS Works) -->
-    <img src="https://source.unsplash.com/1600x900/?technology,files,dark" class="background-img">
-
-    <div class="home-container">
-        <h1 class="app-name">File Marshal</h1>
-        <p class="app-description">
-            A smart and intuitive file organizer that keeps your digital space structured effortlessly.
-        </p>
-        <button id="getStarted">Get Started</button>
+<body>
+    <div class="container">
+        <nav class="sidebar">
+            <h2>File Explorer</h2>
+            <div class="tree-view"></div>
+        </nav>
+        <main class="file-view">
+            <div class="navigation-bar">
+                <div class="nav-left">
+                    <button id="backBtn" disabled>←</button>
+                    <button id="forwardBtn" disabled>→</button>
+                    <span class="current-path"></span>
+                </div>
+                <div class="nav-right">
+                    <div class="search-container">
+                        <input type="text" id="searchInput" placeholder="Search files...">
+                        <button id="searchBtn">🔍</button>
+                    </div>
+                </div>
+            </div>
+            <div class="files"></div>
+        </main>
     </div>
-
-    <script>
-        document.getElementById("getStarted").addEventListener("click", () => {
-            window.location.href = "loading.html";
-        });
-    </script>
+    <script src="fileManager.js"></script>
 </body>
 </html>

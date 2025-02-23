@@ -9,7 +9,7 @@ let selectedFiles = new Set();
 
 async function loadDrives() {
     try {
-        const response = await fetch('http://localhost:5000/api/drives');
+        const response = await fetch('http://127.0.0.1:5000/api/drives');
         const drives = await response.json();
         return drives;
     } catch (error) {
@@ -21,7 +21,7 @@ async function loadDrives() {
 async function loadFiles(path, addToHistory = true) {
     try {
         const encodedPath = encodeURIComponent(path);
-        const response = await fetch(`http://localhost:5000/api/files/${encodedPath}`);
+        const response = await fetch(`http://127.0.0.1:5000/api/files/${encodedPath}`);
         const files = await response.json();
         
         if (addToHistory) {
@@ -49,7 +49,7 @@ async function loadFilesByCategory(category, path) {
         console.log(`Loading category: ${category} from path: ${path}`); // Debug log
         
         const encodedPath = encodeURIComponent(path);
-        const response = await fetch(`http://localhost:5000/api/files/category/${category}?path=${encodedPath}`);
+        const response = await fetch(`http://127.0.0.1:5000/api/files/category/${category}?path=${encodedPath}`);
         
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
@@ -86,7 +86,7 @@ async function searchFiles(query, path) {
 
         const encodedPath = encodeURIComponent(path);
         const encodedQuery = encodeURIComponent(query.trim());
-        const response = await fetch(`http://localhost:5000/api/search?query=${encodedQuery}&path=${encodedPath}`);
+        const response = await fetch(`http://127.0.0.1:5000/api/search?query=${encodedQuery}&path=${encodedPath}`);
         
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
@@ -272,7 +272,7 @@ function displayFiles(files) {
 
 async function openFile(file) {
     try {
-        const response = await fetch('http://localhost:5000/api/open', {
+        const response = await fetch('http://127.0.0.1:5000/api/open', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -389,6 +389,9 @@ function handleSearch(event) {
 
 // Remove all previous event listeners and add new ones
 document.addEventListener('DOMContentLoaded', () => {
+    // Initialize the sidebar with drives
+    initializeSidebar();
+    
     const searchContainer = document.querySelector('.search-container');
     const oldSearchInput = document.getElementById('searchInput');
     const oldSearchBtn = document.getElementById('searchBtn');
@@ -465,17 +468,6 @@ document.addEventListener('DOMContentLoaded', () => {
             loadFiles(currentPath);
         });
     });
-
-    // Add category click handlers
-    document.querySelectorAll('.sidebar li').forEach(item => {
-        item.addEventListener('click', () => {
-            const category = item.dataset.type;
-            const currentPath = document.querySelector('.current-path').textContent;
-            if (currentPath) {
-                loadFilesByCategory(category, currentPath);
-            }
-        });
-    });
 });
 
 function updateSelectionControls() {
@@ -518,7 +510,7 @@ function clearSelection() {
 
 async function organizeSelectedFiles() {
     try {
-        const response = await fetch('http://localhost:5000/api/organize', {
+        const response = await fetch('http://127.0.0.1:5000/api/organize', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -556,4 +548,136 @@ function displaySuccess(message) {
         document.querySelector('.files')
     );
     setTimeout(() => successElement.remove(), 3000);
+}
+
+// Update loadDirectoryContents function
+async function loadDirectoryContents(path) {
+    try {
+        // Ensure path is absolute
+        const absolutePath = path.startsWith('C:') ? path : `C:${path}`;
+        const encodedPath = encodeURIComponent(absolutePath);
+        const response = await fetch(`http://127.0.0.1:5000/api/files/${encodedPath}`);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const files = await response.json();
+        
+        if (files.error) {
+            throw new Error(files.error);
+        }
+        
+        return files;
+    } catch (error) {
+        console.error('Error loading directory contents:', error);
+        return [];
+    }
+}
+
+// Update createTreeItem function
+function createTreeItem(name, path, isDirectory) {
+    const item = document.createElement('div');
+    item.className = 'tree-item';
+    
+    const content = document.createElement('div');
+    content.className = 'tree-content';
+    
+    if (isDirectory) {
+        const expandBtn = document.createElement('span');
+        expandBtn.className = 'expand-button';
+        expandBtn.textContent = '►';
+        content.appendChild(expandBtn);
+        
+        const childList = document.createElement('div');
+        childList.className = 'tree-list hidden';
+        
+        expandBtn.onclick = async (e) => {
+            e.stopPropagation();
+            const isExpanded = expandBtn.textContent === '▼';
+            expandBtn.textContent = isExpanded ? '►' : '▼';
+            childList.classList.toggle('hidden');
+            
+            if (!isExpanded && childList.children.length === 0) {
+                try {
+                    // Ensure we're using the full path
+                    const fullPath = path.includes(':') ? path : `${name}:\\`;
+                    const children = await loadDirectoryContents(fullPath);
+                    const MAX_VISIBLE_ITEMS = 50;
+                    
+                    children.slice(0, MAX_VISIBLE_ITEMS).forEach(child => {
+                        const childPath = child.path;
+                        childList.appendChild(
+                            createTreeItem(child.name, childPath, child.type === 'directory')
+                        );
+                    });
+                    
+                    if (children.length > MAX_VISIBLE_ITEMS) {
+                        const moreItem = document.createElement('div');
+                        moreItem.className = 'tree-item more-items';
+                        moreItem.textContent = `... ${children.length - MAX_VISIBLE_ITEMS} more items`;
+                        childList.appendChild(moreItem);
+                    }
+                } catch (error) {
+                    console.error('Error loading directory:', error);
+                    // Show error in the tree
+                    const errorItem = document.createElement('div');
+                    errorItem.className = 'tree-item error';
+                    errorItem.textContent = 'Error loading contents';
+                    childList.appendChild(errorItem);
+                }
+            }
+        };
+        
+        item.appendChild(childList);
+    }
+    
+    const icon = document.createElement('span');
+    icon.className = 'tree-icon';
+    icon.textContent = isDirectory ? '📁' : '📄';
+    
+    const label = document.createElement('span');
+    label.className = 'tree-label';
+    label.textContent = name;
+    
+    content.appendChild(icon);
+    content.appendChild(label);
+    item.insertBefore(content, item.firstChild);
+    
+    // Update click handler to use full path
+    content.onclick = () => {
+        if (isDirectory) {
+            const fullPath = path.includes(':') ? path : `${name}:\\`;
+            loadFiles(fullPath);
+        } else {
+            openFile({ path: path, name: name });
+        }
+    };
+    
+    return item;
+}
+
+// Update initializeSidebar function
+async function initializeSidebar() {
+    const sidebar = document.querySelector('.sidebar');
+    sidebar.innerHTML = '<h2>File Explorer</h2>';
+    
+    const treeRoot = document.createElement('ul');
+    treeRoot.className = 'tree-root';
+    sidebar.appendChild(treeRoot);
+    
+    try {
+        const drives = await loadDrives();
+        drives.forEach(drive => {
+            // Create drive items with proper formatting
+            const drivePath = `${drive}\\`;
+            treeRoot.appendChild(createTreeItem(drive, drivePath, true));
+        });
+    } catch (error) {
+        console.error('Error loading drives:', error);
+        const errorItem = document.createElement('li');
+        errorItem.className = 'error-message';
+        errorItem.textContent = 'Failed to load drives';
+        treeRoot.appendChild(errorItem);
+    }
 }

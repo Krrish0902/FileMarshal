@@ -1,11 +1,11 @@
-from tika import parser, detector
+from tika import parser
 import mimetypes
 import os
 import re
 
 class FileClassifier:
     def __init__(self):
-        # Single source of truth for file categories with extensions
+        # Keep only necessary category mappings
         self.FILE_CATEGORIES = {
             "text": {".txt", ".srt", ".md", ".json", ".xml", ".log", ".ini", ".cfg"},
             "document": {".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx"},
@@ -16,18 +16,13 @@ class FileClassifier:
             "code": {".py", ".js", ".java", ".cpp", ".h", ".cs", ".php", ".html", ".css"}
         }
         
-        # MIME type mappings
         self.MIME_CATEGORIES = {
-            'text': ['text/plain', 'text/markdown', 'text/json', 'text/xml', 'text/html'],
-            'document': [
-                'application/pdf', 
-                'application/msword',
-                'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-            ],
-            'image': ['image/jpeg', 'image/png', 'image/gif', 'image/bmp', 'image/tiff'],
-            'audio': ['audio/mpeg', 'audio/wav', 'audio/aac', 'audio/flac'],
+            'text': ['text/plain', 'text/markdown', 'text/json', 'text/xml'],
+            'document': ['application/pdf', 'application/msword'],
+            'image': ['image/jpeg', 'image/png', 'image/gif'],
+            'audio': ['audio/mpeg', 'audio/wav', 'audio/aac'],
             'video': ['video/mp4', 'video/avi', 'video/x-matroska'],
-            'compressed': ['application/zip', 'application/x-rar-compressed', 'application/x-tar']
+            'compressed': ['application/zip', 'application/x-rar-compressed']
         }
 
         self.content_subcategories = {
